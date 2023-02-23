@@ -31,6 +31,13 @@ public class PersistenceException extends IbatisException {
     super(message);
   }
 
+  /**
+   * message 存储异常的详细信息
+   * cause 指向下级throwable对象，从而形成异常链
+   *
+   * @author yangwenxin
+   * @date 2023-02-23 17:04
+   */
   public PersistenceException(String message, Throwable cause) {
     super(message, cause);
   }

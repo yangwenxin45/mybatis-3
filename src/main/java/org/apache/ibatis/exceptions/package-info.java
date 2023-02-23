@@ -15,5 +15,16 @@
  */
 /**
  * Base package for exceptions.
+ * <p>
+ * exceptions包为mybatis定义了绝大多数异常类的父类，同时也提供了异常类的生产工厂
+ *
+ * @author yangwenxin
+ * @date 2023-02-23 17:02
+ */
+/**
+ * exceptions包为mybatis定义了绝大多数异常类的父类，同时也提供了异常类的生产工厂
+ *
+ * @author yangwenxin
+ * @date 2023-02-23 17:02
  */
 package org.apache.ibatis.exceptions;
