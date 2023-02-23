@@ -15,5 +15,16 @@
  */
 /**
  * Unused.
+ * <p>
+ * invoker子包是执行器子包，该子包中的类能够基于反射实现对象方法的调用和对象属性的读写
+ *
+ * @author yangwenxin
+ * @date 2023-02-23 17:00
+ */
+/**
+ * invoker子包是执行器子包，该子包中的类能够基于反射实现对象方法的调用和对象属性的读写
+ *
+ * @author yangwenxin
+ * @date 2023-02-23 17:00
  */
 package org.apache.ibatis.reflection.invoker;

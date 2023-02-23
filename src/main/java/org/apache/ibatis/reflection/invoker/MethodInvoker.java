@@ -15,10 +15,10 @@
  */
 package org.apache.ibatis.reflection.invoker;
 
+import org.apache.ibatis.reflection.Reflector;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-
-import org.apache.ibatis.reflection.Reflector;
 
 /**
  * @author Clinton Begin
@@ -28,6 +28,12 @@ public class MethodInvoker implements Invoker {
   private final Class<?> type;
   private final Method method;
 
+  /**
+   * 如果方法只有一个输入参数，则type为输入参数的类型，否则type为方法返回值的类型
+   *
+   * @author yangwenxin
+   * @date 2023-02-23 17:16
+   */
   public MethodInvoker(Method method) {
     this.method = method;
 
@@ -38,6 +44,12 @@ public class MethodInvoker implements Invoker {
     }
   }
 
+  /**
+   * 调用目标方法
+   *
+   * @author yangwenxin
+   * @date 2023-02-23 17:31
+   */
   @Override
   public Object invoke(Object target, Object[] args) throws IllegalAccessException, InvocationTargetException {
     try {
