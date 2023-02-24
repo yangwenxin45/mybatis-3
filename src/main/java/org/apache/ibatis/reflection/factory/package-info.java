@@ -14,14 +14,6 @@
  *    limitations under the License.
  */
 /**
- * Object factory.
- * <p>
- * factory子包是一个对象工厂子包，该包中的类用来基于反射生产出各种对象
- *
- * @author yangwenxin
- * @date 2023-02-23 16:59
- */
-/**
  * factory子包是一个对象工厂子包，该包中的类用来基于反射生产出各种对象
  *
  * @author yangwenxin
