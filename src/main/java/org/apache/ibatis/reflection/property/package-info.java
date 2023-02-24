@@ -15,5 +15,16 @@
  */
 /**
  * Tools for getting/setting properties
+ * <p>
+ * property子包是属性子包，该子包中的类用来完成与对象属性相关的操作
+ *
+ * @author yangwenxin
+ * @date 2023-02-24 09:11
+ */
+/**
+ * property子包是属性子包，该子包中的类用来完成与对象属性相关的操作
+ *
+ * @author yangwenxin
+ * @date 2023-02-24 09:11
  */
 package org.apache.ibatis.reflection.property;

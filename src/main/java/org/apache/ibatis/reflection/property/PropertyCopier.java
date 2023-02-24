@@ -15,9 +15,9 @@
  */
 package org.apache.ibatis.reflection.property;
 
-import java.lang.reflect.Field;
-
 import org.apache.ibatis.reflection.Reflector;
+
+import java.lang.reflect.Field;
 
 /**
  * @author Clinton Begin
@@ -28,6 +28,15 @@ public final class PropertyCopier {
     // Prevent Instantiation of Static Class
   }
 
+  /**
+   * 复制源对象属性值到目标对象中，包括继承属性和私有属性
+   * type 对象的类型
+   * sourceBean 源对象
+   * destinationBean 目标对象
+   *
+   * @author yangwenxin
+   * @date 2023-02-24 09:20
+   */
   public static void copyBeanProperties(Class<?> type, Object sourceBean, Object destinationBean) {
     Class<?> parent = type;
     while (parent != null) {
@@ -48,6 +57,7 @@ public final class PropertyCopier {
           // Nothing useful to do, will only fail on final fields, which will be ignored.
         }
       }
+      // 得到父类的类型
       parent = parent.getSuperclass();
     }
   }
