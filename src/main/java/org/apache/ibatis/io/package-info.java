@@ -15,5 +15,6 @@
  */
 /**
  * Utilities to read resources.
+ * io包即输入输出包，负责完成Mybatis中与输入/输出相关的操作
  */
 package org.apache.ibatis.io;

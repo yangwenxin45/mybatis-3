@@ -182,7 +182,7 @@ public class ClassLoaderWrapper {
       if (null != cl) {
 
         try {
-
+          // 使用当前类加载器尝试是否能够加载成功，只要找到目标类，则返回结果
           Class<?> c = Class.forName(name, true, cl);
 
           if (null != c) {
@@ -203,10 +203,15 @@ public class ClassLoaderWrapper {
 
   ClassLoader[] getClassLoaders(ClassLoader classLoader) {
     return new ClassLoader[]{
+      // 作为参数传入的类加载器，可能为null
         classLoader,
+      // 系统默认的类加载器，如未设置则为null
         defaultClassLoader,
+      // 当前线程的线程上下文中的类加载器
         Thread.currentThread().getContextClassLoader(),
+      // 当前对象的类加载器
         getClass().getClassLoader(),
+      // 系统类加载器，在ClassLoaderWrapper的构造方法中设置
         systemClassLoader};
   }
 
