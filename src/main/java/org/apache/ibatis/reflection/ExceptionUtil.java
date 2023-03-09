@@ -29,6 +29,8 @@ public class ExceptionUtil {
 
   public static Throwable unwrapThrowable(Throwable wrapped) {
     Throwable unwrapped = wrapped;
+    // 代理类在进行反射操作时发生异常，异常被包装成InvocationTargetException，
+    // InvocationTargetException没有在共同接口或者父类方法中声明过，于是又包装成了UndeclaredThrowableException
     while (true) {
       if (unwrapped instanceof InvocationTargetException) {
         unwrapped = ((InvocationTargetException) unwrapped).getTargetException();

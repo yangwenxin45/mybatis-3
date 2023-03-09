@@ -15,14 +15,7 @@
  */
 package org.apache.ibatis.reflection;
 
-import java.lang.reflect.Array;
-import java.lang.reflect.Field;
-import java.lang.reflect.GenericArrayType;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.lang.reflect.TypeVariable;
-import java.lang.reflect.WildcardType;
+import java.lang.reflect.*;
 import java.util.Arrays;
 
 /**
@@ -31,8 +24,10 @@ import java.util.Arrays;
 public class TypeParameterResolver {
 
   /**
+   * 解析属性的泛型
+   *
    * @return The field type as {@link Type}. If it has type parameters in the declaration,<br>
-   *         they will be resolved to the actual runtime {@link Type}s.
+   * they will be resolved to the actual runtime {@link Type}s.
    */
   public static Type resolveFieldType(Field field, Type srcType) {
     Type fieldType = field.getGenericType();
@@ -41,6 +36,7 @@ public class TypeParameterResolver {
   }
 
   /**
+   * 解析方法返回值的泛型
    * @return The return type of the method as {@link Type}. If it has type parameters in the declaration,<br>
    *         they will be resolved to the actual runtime {@link Type}s.
    */
@@ -51,6 +47,7 @@ public class TypeParameterResolver {
   }
 
   /**
+   * 解析方法输入参数的泛型
    * @return The parameter types of the method as an array of {@link Type}s. If they have type parameters in the declaration,<br>
    *         they will be resolved to the actual runtime {@link Type}s.
    */
@@ -64,11 +61,22 @@ public class TypeParameterResolver {
     return result;
   }
 
+  /**
+   * 解析变量的实际类型
+   *
+   * @param type           变量的类型
+   * @param srcType        变量所属类，例如Student
+   * @param declaringClass 变量定义类，例如User
+   * @return 解析结果
+   */
   private static Type resolveType(Type type, Type srcType, Class<?> declaringClass) {
+    // 类型变量，如K，V
     if (type instanceof TypeVariable) {
       return resolveTypeVar((TypeVariable<?>) type, srcType, declaringClass);
+      // 参数化类型，如Collection<String>
     } else if (type instanceof ParameterizedType) {
       return resolveParameterizedType((ParameterizedType) type, srcType, declaringClass);
+      // 包含ParameterizedType或者TypeVariable元素的数组，如T[], Collection<String>[]
     } else if (type instanceof GenericArrayType) {
       return resolveGenericArrayType((GenericArrayType) type, srcType, declaringClass);
     } else {
@@ -76,6 +84,12 @@ public class TypeParameterResolver {
     }
   }
 
+  /**
+   * 解析包含ParameterizedType或者TypeVariable元素的列表
+   *
+   * @author yangwenxin
+   * @date 2023-02-24 16:40
+   */
   private static Type resolveGenericArrayType(GenericArrayType genericArrayType, Type srcType, Class<?> declaringClass) {
     Type componentType = genericArrayType.getGenericComponentType();
     Type resolvedComponentType = null;
@@ -93,18 +107,32 @@ public class TypeParameterResolver {
     }
   }
 
+  /**
+   * 解析参数化类型
+   *
+   * @author yangwenxin
+   * @date 2023-02-24 16:40
+   */
   private static ParameterizedType resolveParameterizedType(ParameterizedType parameterizedType, Type srcType, Class<?> declaringClass) {
+//    List<T>
+    // 变量的原始类型，List
     Class<?> rawType = (Class<?>) parameterizedType.getRawType();
+    // 获取类型参数，T
     Type[] typeArgs = parameterizedType.getActualTypeArguments();
+    // 类型参数的实际类型
     Type[] args = new Type[typeArgs.length];
     for (int i = 0; i < typeArgs.length; i++) {
+      // 类型参数是类型变量，例如List<T>
       if (typeArgs[i] instanceof TypeVariable) {
         args[i] = resolveTypeVar((TypeVariable<?>) typeArgs[i], srcType, declaringClass);
+        // 类型参数是参数化类型，例如List<List<T>>
       } else if (typeArgs[i] instanceof ParameterizedType) {
         args[i] = resolveParameterizedType((ParameterizedType) typeArgs[i], srcType, declaringClass);
+        // 类型参数时通配符泛型，例如List<? extends Number>
       } else if (typeArgs[i] instanceof WildcardType) {
         args[i] = resolveWildcardType((WildcardType) typeArgs[i], srcType, declaringClass);
       } else {
+        // 类型参数是确定的类型，例如List<String>
         args[i] = typeArgs[i];
       }
     }
@@ -133,6 +161,12 @@ public class TypeParameterResolver {
     return result;
   }
 
+  /**
+   * 解析类型变量
+   *
+   * @author yangwenxin
+   * @date 2023-02-24 16:41
+   */
   private static Type resolveTypeVar(TypeVariable<?> typeVar, Type srcType, Class<?> declaringClass) {
     Type result;
     Class<?> clazz;
@@ -145,20 +179,26 @@ public class TypeParameterResolver {
       throw new IllegalArgumentException("The 2nd arg must be Class or ParameterizedType, but was: " + srcType.getClass());
     }
 
+    // 变量所属的类和定义变量的类一致
     if (clazz == declaringClass) {
+      // 确定泛型变量的上界
       Type[] bounds = typeVar.getBounds();
       if (bounds.length > 0) {
         return bounds[0];
       }
+      // 泛型变量无上界，则上界为Object
       return Object.class;
     }
 
+    // 获取变量所属类的父类
     Type superclass = clazz.getGenericSuperclass();
+    // 扫描父类，查看能否确定边界
     result = scanSuperTypes(typeVar, srcType, declaringClass, clazz, superclass);
     if (result != null) {
       return result;
     }
 
+    // 获取变量所属类的接口
     Type[] superInterfaces = clazz.getGenericInterfaces();
     for (Type superInterface : superInterfaces) {
       result = scanSuperTypes(typeVar, srcType, declaringClass, clazz, superInterface);

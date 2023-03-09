@@ -15,29 +15,15 @@
  */
 package org.apache.ibatis.reflection;
 
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.GenericArrayType;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.ReflectPermission;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import org.apache.ibatis.reflection.invoker.GetFieldInvoker;
 import org.apache.ibatis.reflection.invoker.Invoker;
 import org.apache.ibatis.reflection.invoker.MethodInvoker;
 import org.apache.ibatis.reflection.invoker.SetFieldInvoker;
 import org.apache.ibatis.reflection.property.PropertyNamer;
+
+import java.lang.reflect.*;
+import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * This class represents a cached set of class definition information that
@@ -47,25 +33,41 @@ import org.apache.ibatis.reflection.property.PropertyNamer;
  */
 public class Reflector {
 
+  // 要被反射解析的类类型
   private final Class<?> type;
+  // 能够读的属性列表，即有get方法的属性列表
   private final String[] readablePropertyNames;
+  // 能够写的属性列表，即有set方法的属性列表
   private final String[] writablePropertyNames;
+  // set方法映射表，键为属性名，值为对应的set方法
   private final Map<String, Invoker> setMethods = new HashMap<>();
+  // get方法映射表，键为属性名，值为对应的get方法
   private final Map<String, Invoker> getMethods = new HashMap<>();
+  // set方法输入类型，键为属性名，值为对应的该属性的set方法的类型（实际为set方法的第一个参数的类型）
   private final Map<String, Class<?>> setTypes = new HashMap<>();
+  // get方法输入类型，键为属性名，值为对应的该属性的get方法的类型（实际为get方法的返回值类型）
   private final Map<String, Class<?>> getTypes = new HashMap<>();
+  // 默认构造函数
   private Constructor<?> defaultConstructor;
-
+  // 大小写无关的属性映射表，键为属性名全大写值，值为属性名
   private Map<String, String> caseInsensitivePropertyMap = new HashMap<>();
 
   public Reflector(Class<?> clazz) {
+    // 要被反射解析的类类型
     type = clazz;
+    // 设置默认的构造器属性
     addDefaultConstructor(clazz);
+    // 解析所有的getter
     addGetMethods(clazz);
+    // 解析所有的setter
     addSetMethods(clazz);
+    // 解析所有属性
     addFields(clazz);
+    // 设定可读属性
     readablePropertyNames = getMethods.keySet().toArray(new String[0]);
+    // 设定可写属性
     writablePropertyNames = setMethods.keySet().toArray(new String[0]);
+    // 将可读或者可写的属性放入大小写无关的属性映射表
     for (String propName : readablePropertyNames) {
       caseInsensitivePropertyMap.put(propName.toUpperCase(Locale.ENGLISH), propName);
     }
@@ -81,13 +83,23 @@ public class Reflector {
   }
 
   private void addGetMethods(Class<?> clazz) {
+    // 存储属性的get方法，Map的键为属性名，值为get方法列表
+    // 某个属性的get方法用列表存储是因为前期可能会为某一个属性找到多个可能的get方法
     Map<String, List<Method>> conflictingGetters = new HashMap<>();
     Method[] methods = getClassMethods(clazz);
+    // 过滤条件：无输入参数且符合Java Bean的命名规则
     Arrays.stream(methods).filter(m -> m.getParameterTypes().length == 0 && PropertyNamer.isGetter(m.getName()))
       .forEach(m -> addMethodConflict(conflictingGetters, PropertyNamer.methodToProperty(m.getName()), m));
+    // 如果一个属性有多个疑似get方法，用来找出合适的那个
     resolveGetterConflicts(conflictingGetters);
   }
 
+  /**
+   * 解决多个getter方法冲突
+   *
+   * @author yangwenxin
+   * @date 2023-02-24 16:02
+   */
   private void resolveGetterConflicts(Map<String, List<Method>> conflictingGetters) {
     for (Entry<String, List<Method>> entry : conflictingGetters.entrySet()) {
       Method winner = null;
@@ -102,9 +114,9 @@ public class Reflector {
         if (candidateType.equals(winnerType)) {
           if (!boolean.class.equals(candidateType)) {
             throw new ReflectionException(
-                "Illegal overloaded getter method with ambiguous type for property "
-                    + propName + " in class " + winner.getDeclaringClass()
-                    + ". This breaks the JavaBeans specification and can cause unpredictable results.");
+              "Illegal overloaded getter method with ambiguous type for property "
+                + propName + " in class " + winner.getDeclaringClass()
+                + ". This breaks the JavaBeans specification and can cause unpredictable results.");
           } else if (candidate.getName().startsWith("is")) {
             winner = candidate;
           }
@@ -114,9 +126,9 @@ public class Reflector {
           winner = candidate;
         } else {
           throw new ReflectionException(
-              "Illegal overloaded getter method with ambiguous type for property "
-                  + propName + " in class " + winner.getDeclaringClass()
-                  + ". This breaks the JavaBeans specification and can cause unpredictable results.");
+            "Illegal overloaded getter method with ambiguous type for property "
+              + propName + " in class " + winner.getDeclaringClass()
+              + ". This breaks the JavaBeans specification and can cause unpredictable results.");
         }
       }
       addGetMethod(propName, winner);
@@ -270,6 +282,7 @@ public class Reflector {
    * @return An array containing all methods in this class
    */
   private Method[] getClassMethods(Class<?> clazz) {
+    // 防止添加重复方法
     Map<String, Method> uniqueMethods = new HashMap<>();
     Class<?> currentClass = clazz;
     while (currentClass != null && currentClass != Object.class) {
@@ -286,7 +299,7 @@ public class Reflector {
     }
 
     Collection<Method> methods = uniqueMethods.values();
-
+    // 如果指定的数组大小不够容纳collection，则根据指定数组的运行时类型和此collection的大小分配一个新数组
     return methods.toArray(new Method[0]);
   }
 
@@ -304,6 +317,12 @@ public class Reflector {
     }
   }
 
+  /**
+   * 方法签名格式：void#method:param1,param2
+   *
+   * @author yangwenxin
+   * @date 2023-02-24 11:40
+   */
   private String getSignature(Method method) {
     StringBuilder sb = new StringBuilder();
     Class<?> returnType = method.getReturnType();

@@ -15,35 +15,95 @@
  */
 package org.apache.ibatis.reflection.wrapper;
 
-import java.util.List;
-
 import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.reflection.factory.ObjectFactory;
 import org.apache.ibatis.reflection.property.PropertyTokenizer;
+
+import java.util.List;
 
 /**
  * @author Clinton Begin
  */
 public interface ObjectWrapper {
 
+  /**
+   * 获得被包装对象某个属性的值
+   *
+   * @author yangwenxin
+   * @date 2023-03-01 15:03
+   */
   Object get(PropertyTokenizer prop);
 
+  /**
+   * 设置被包装对象某个属性的值
+   *
+   * @author yangwenxin
+   * @date 2023-03-01 15:04
+   */
   void set(PropertyTokenizer prop, Object value);
 
+  /**
+   * 找到对应的属性名称
+   *
+   * @author yangwenxin
+   * @date 2023-03-01 15:04
+   */
   String findProperty(String name, boolean useCamelCaseMapping);
 
+  /**
+   * 获得所有的属性get方法名称
+   *
+   * @author yangwenxin
+   * @date 2023-03-01 15:04
+   */
   String[] getGetterNames();
 
+  /**
+   * 获得所有属性的set方法名称
+   *
+   * @author yangwenxin
+   * @date 2023-03-01 15:05
+   */
   String[] getSetterNames();
 
+  /**
+   * 获得指定属性的set方法的类型
+   *
+   * @author yangwenxin
+   * @date 2023-03-01 15:05
+   */
   Class<?> getSetterType(String name);
 
+  /**
+   * 获取指定属性的get方法的类型
+   *
+   * @author yangwenxin
+   * @date 2023-03-01 15:06
+   */
   Class<?> getGetterType(String name);
 
+  /**
+   * 判断某个属性是否有对应的set方法
+   *
+   * @author yangwenxin
+   * @date 2023-03-01 15:06
+   */
   boolean hasSetter(String name);
 
+  /**
+   * 判断某个属性是否有对应的get方法
+   *
+   * @author yangwenxin
+   * @date 2023-03-01 15:07
+   */
   boolean hasGetter(String name);
 
+  /**
+   * 实例化某个属性的值
+   *
+   * @author yangwenxin
+   * @date 2023-03-01 15:07
+   */
   MetaObject instantiatePropertyValue(String name, PropertyTokenizer prop, ObjectFactory objectFactory);
 
   boolean isCollection();

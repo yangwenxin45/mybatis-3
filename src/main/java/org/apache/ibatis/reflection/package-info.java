@@ -15,5 +15,6 @@
  */
 /**
  * Reflection utils.
+ * reflection包是提供反射功能的基础包
  */
 package org.apache.ibatis.reflection;

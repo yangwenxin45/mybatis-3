@@ -21,5 +21,11 @@ public interface ReflectorFactory {
 
   void setClassCacheEnabled(boolean classCacheEnabled);
 
+  /**
+   * 生成一个类类型的Reflector对象
+   *
+   * @author yangwenxin
+   * @date 2023-03-01 15:35
+   */
   Reflector findForClass(Class<?> type);
 }
