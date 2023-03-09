@@ -15,13 +15,13 @@
  */
 package org.apache.ibatis.type;
 
+import org.apache.ibatis.executor.result.ResultMapException;
+import org.apache.ibatis.session.Configuration;
+
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import org.apache.ibatis.executor.result.ResultMapException;
-import org.apache.ibatis.session.Configuration;
 
 /**
  * The base {@link TypeHandler} for references a generic type.
@@ -102,15 +102,35 @@ public abstract class BaseTypeHandler<T> extends TypeReference<T> implements Typ
     }
   }
 
+  /**
+   * 向PreparedStatement对象中的指定位置写入一个不为null的值
+   *
+   * @author yangwenxin
+   * @date 2023-03-09 10:11
+   */
   public abstract void setNonNullParameter(PreparedStatement ps, int i, T parameter, JdbcType jdbcType) throws SQLException;
 
   /**
+   * 从ResultSet中按照字段名读出一个可能为null的数据
+   *
    * @param columnName Colunm name, when configuration <code>useColumnLabel</code> is <code>false</code>
    */
   public abstract T getNullableResult(ResultSet rs, String columnName) throws SQLException;
 
+  /**
+   * 从ResultSet中按照字段编号读出一个可能为null的数据
+   *
+   * @author yangwenxin
+   * @date 2023-03-09 10:13
+   */
   public abstract T getNullableResult(ResultSet rs, int columnIndex) throws SQLException;
 
+  /**
+   * 从CallableStatement中按照字段编号读出一个可能为null的数据
+   *
+   * @author yangwenxin
+   * @date 2023-03-09 10:14
+   */
   public abstract T getNullableResult(CallableStatement cs, int columnIndex) throws SQLException;
 
 }

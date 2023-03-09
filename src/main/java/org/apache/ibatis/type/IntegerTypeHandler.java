@@ -35,6 +35,7 @@ public class IntegerTypeHandler extends BaseTypeHandler<Integer> {
   public Integer getNullableResult(ResultSet rs, String columnName)
       throws SQLException {
     int result = rs.getInt(columnName);
+    // 最后一次getter方法读到的值是否为null
     return result == 0 && rs.wasNull() ? null : result;
   }
 
@@ -51,4 +52,5 @@ public class IntegerTypeHandler extends BaseTypeHandler<Integer> {
     int result = cs.getInt(columnIndex);
     return result == 0 && cs.wasNull() ? null : result;
   }
+
 }
