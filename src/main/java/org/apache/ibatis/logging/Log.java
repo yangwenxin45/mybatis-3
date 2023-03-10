@@ -20,8 +20,20 @@ package org.apache.ibatis.logging;
  */
 public interface Log {
 
+  /**
+   * 判断打印Debug级别日志的功能是否开启
+   *
+   * @author yangwenxin
+   * @date 2023-03-10 10:17
+   */
   boolean isDebugEnabled();
 
+  /**
+   * 判断打印Trace级别日志的功能是否开启
+   *
+   * @author yangwenxin
+   * @date 2023-03-10 10:17
+   */
   boolean isTraceEnabled();
 
   void error(String s, Throwable e);

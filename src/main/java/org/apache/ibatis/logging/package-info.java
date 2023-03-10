@@ -15,5 +15,6 @@
  */
 /**
  * Base package for logging.
+ * logging包负责完成Mybatis操作中的日志记录工作
  */
 package org.apache.ibatis.logging;

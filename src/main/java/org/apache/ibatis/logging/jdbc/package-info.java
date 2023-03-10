@@ -15,5 +15,6 @@
  */
 /**
  * Logging proxies that logs any JDBC statement.
+ * jdbc子包基于代理模式，让Mybatis能够将JDBC的操作日志打印出来
  */
 package org.apache.ibatis.logging.jdbc;

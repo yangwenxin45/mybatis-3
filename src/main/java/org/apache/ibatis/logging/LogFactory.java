@@ -90,6 +90,7 @@ public final class LogFactory {
   private static void tryImplementation(Runnable runnable) {
     if (logConstructor == null) {
       try {
+        // 直接调用Runnable对象的run方法并不会触发多线程
         runnable.run();
       } catch (Throwable t) {
         // ignore
@@ -99,11 +100,14 @@ public final class LogFactory {
 
   private static void setImplementation(Class<? extends Log> implClass) {
     try {
+      // 当前日志实现类的构造方法
       Constructor<? extends Log> candidate = implClass.getConstructor(String.class);
+      // 尝试生成日志实现类的实例
       Log log = candidate.newInstance(LogFactory.class.getName());
       if (log.isDebugEnabled()) {
         log.debug("Logging initialized using '" + implClass + "' adapter.");
       }
+      // 运行到这里，说明没有异常发生，则实例化日志实现类成功
       logConstructor = candidate;
     } catch (Throwable t) {
       throw new LogException("Error setting Log implementation.  Cause: " + t, t);
