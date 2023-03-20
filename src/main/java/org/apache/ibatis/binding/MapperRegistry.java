@@ -15,16 +15,12 @@
  */
 package org.apache.ibatis.binding;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.ibatis.builder.annotation.MapperAnnotationBuilder;
 import org.apache.ibatis.io.ResolverUtil;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
+
+import java.util.*;
 
 /**
  * @author Clinton Begin
@@ -34,19 +30,30 @@ import org.apache.ibatis.session.SqlSession;
 public class MapperRegistry {
 
   private final Configuration config;
+  // 维护映射接口和MapperProxy的对应关系，键为映射接口，值为对应的MapperProxyFactory对象
   private final Map<Class<?>, MapperProxyFactory<?>> knownMappers = new HashMap<>();
 
   public MapperRegistry(Configuration config) {
     this.config = config;
   }
 
+  /**
+   * 找出指定映射接口的映射文件，并根据映射文件信息为该映射接口生成一个代理实现
+   *
+   * @param type       映射接口
+   * @param sqlSession
+   * @param <T>        映射接口类型
+   * @return 代理实现对象
+   */
   @SuppressWarnings("unchecked")
   public <T> T getMapper(Class<T> type, SqlSession sqlSession) {
+    // 找出指定映射接口的代理工厂
     final MapperProxyFactory<T> mapperProxyFactory = (MapperProxyFactory<T>) knownMappers.get(type);
     if (mapperProxyFactory == null) {
       throw new BindingException("Type " + type + " is not known to the MapperRegistry.");
     }
     try {
+      //  通过mapperProxyFactory给出对应代理器的实例
       return mapperProxyFactory.newInstance(sqlSession);
     } catch (Exception e) {
       throw new BindingException("Error getting mapper instance. Cause: " + e, e);

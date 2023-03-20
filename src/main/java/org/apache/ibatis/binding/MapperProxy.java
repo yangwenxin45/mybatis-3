@@ -15,15 +15,15 @@
  */
 package org.apache.ibatis.binding;
 
+import org.apache.ibatis.reflection.ExceptionUtil;
+import org.apache.ibatis.session.SqlSession;
+
 import java.io.Serializable;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Map;
-
-import org.apache.ibatis.reflection.ExceptionUtil;
-import org.apache.ibatis.session.SqlSession;
 
 /**
  * @author Clinton Begin
@@ -34,6 +34,7 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
   private static final long serialVersionUID = -6424540398559729838L;
   private final SqlSession sqlSession;
   private final Class<T> mapperInterface;
+  // 维护接口方法和MapperMethod对象的映射关系
   private final Map<Method, MapperMethod> methodCache;
 
   public MapperProxy(SqlSession sqlSession, Class<T> mapperInterface, Map<Method, MapperMethod> methodCache) {
@@ -42,18 +43,31 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
     this.methodCache = methodCache;
   }
 
+  /**
+   * 代理方法
+   *
+   * @param proxy  代理对象
+   * @param method 代理方法
+   * @param args   代理方法的参数
+   * @return 方法执行结果
+   * @throws Throwable
+   */
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     try {
+      // 继承自Object方法
       if (Object.class.equals(method.getDeclaringClass())) {
         return method.invoke(this, args);
+        // 默认方法
       } else if (method.isDefault()) {
         return invokeDefaultMethod(proxy, method, args);
       }
     } catch (Throwable t) {
       throw ExceptionUtil.unwrapThrowable(t);
     }
+    // 找到对应的MapperMethod对象
     final MapperMethod mapperMethod = cachedMapperMethod(method);
+    // 调用MapperMethod中的execute方法
     return mapperMethod.execute(sqlSession, args);
   }
 
