@@ -15,27 +15,30 @@
  */
 package org.apache.ibatis.parsing;
 
+import org.w3c.dom.CharacterData;
+import org.w3c.dom.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
-import org.w3c.dom.CharacterData;
-import org.w3c.dom.Element;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 /**
  * @author Clinton Begin
  */
 public class XNode {
 
+  // org.w3c.dom.Node表示是XML中的一个节点
   private final Node node;
+  // 节点名，可以node中获取
   private final String name;
+  // 节点体，可以从node中获取
   private final String body;
+  // 节点的属性，可以从node中获取
   private final Properties attributes;
+  // Mybatis配置文件中的properties信息
   private final Properties variables;
+  // XML解析器XPathParser
   private final XPathParser xpathParser;
 
   public XNode(XPathParser xpathParser, Node node, Properties variables) {

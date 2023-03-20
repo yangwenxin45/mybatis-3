@@ -16,12 +16,17 @@
 package org.apache.ibatis.parsing;
 
 /**
+ * 占位符解析器
+ *
  * @author Clinton Begin
  */
 public class GenericTokenParser {
 
+  // 占位符的起始位置
   private final String openToken;
+  // 占位符的结束位置
   private final String closeToken;
+  // 占位符处理器
   private final TokenHandler handler;
 
   public GenericTokenParser(String openToken, String closeToken, TokenHandler handler) {
@@ -40,6 +45,7 @@ public class GenericTokenParser {
       return text;
     }
     char[] src = text.toCharArray();
+    // 遍历字符串的偏移量
     int offset = 0;
     final StringBuilder builder = new StringBuilder();
     StringBuilder expression = null;

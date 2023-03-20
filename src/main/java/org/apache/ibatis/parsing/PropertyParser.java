@@ -50,15 +50,28 @@ public class PropertyParser {
     // Prevent Instantiation
   }
 
+  /**
+   * 进行字符串中属性变量的替换
+   *
+   * @param string    输入的字符串，可能包含属性变量
+   * @param variables 属性映射信息
+   * @return 经过属性变量替换的字符串
+   */
   public static String parse(String string, Properties variables) {
+    // 创建负责字符串替换的类
     VariableTokenHandler handler = new VariableTokenHandler(variables);
+    // 创建通用的占位符解析器
     GenericTokenParser parser = new GenericTokenParser("${", "}", handler);
+    // 开展解析，即替换占位符中的值
     return parser.parse(string);
   }
 
   private static class VariableTokenHandler implements TokenHandler {
+    // 输入的属性变量，是HashTable的子类
     private final Properties variables;
+    // 是否启用默认值
     private final boolean enableDefaultValue;
+    // 如果启用默认值，则表示键和默认值之间的分隔符
     private final String defaultValueSeparator;
 
     private VariableTokenHandler(Properties variables) {
@@ -71,25 +84,36 @@ public class PropertyParser {
       return (variables == null) ? defaultValue : variables.getProperty(key, defaultValue);
     }
 
+    /**
+     * 以输入参数为键尝试从variables属性中寻找对应的值返回，支持默认值
+     *
+     * @author yangwenxin
+     * @date 2023-03-20 10:30
+     */
     @Override
     public String handleToken(String content) {
       if (variables != null) {
         String key = content;
         if (enableDefaultValue) {
+          // 找出键与默认值之间分隔符的位置
           final int separatorIndex = content.indexOf(defaultValueSeparator);
           String defaultValue = null;
           if (separatorIndex >= 0) {
+            // 分隔符以前是键
             key = content.substring(0, separatorIndex);
+            // 分隔符以后是默认值
             defaultValue = content.substring(separatorIndex + defaultValueSeparator.length());
           }
           if (defaultValue != null) {
             return variables.getProperty(key, defaultValue);
           }
         }
+        // 没有启用默认值
         if (variables.containsKey(key)) {
           return variables.getProperty(key);
         }
       }
+      // 如果variables为null，不发生任何替换，直接原样返回
       return "${" + content + "}";
     }
   }

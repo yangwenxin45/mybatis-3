@@ -15,12 +15,11 @@
  */
 package org.apache.ibatis.parsing;
 
-import java.io.InputStream;
-import java.io.Reader;
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
+import org.apache.ibatis.builder.BuilderException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.*;
 
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
@@ -28,27 +27,27 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
-
-import org.apache.ibatis.builder.BuilderException;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.EntityResolver;
-import org.xml.sax.ErrorHandler;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 
 /**
  * @author Clinton Begin
  * @author Kazuki Shimizu
  */
 public class XPathParser {
-
+  // 代表要解析的整个XML文档
   private final Document document;
+  // 是否开启验证
   private boolean validation;
+  // 通过EntityResolver可以声明寻找DTD文件的方法，例如通过本地寻找，而不是只能通过网络下载DTD文件
   private EntityResolver entityResolver;
+  // Mybatis配置文件中的properties节点的信息
   private Properties variables;
+  // javax.xml.XPath工具
   private XPath xpath;
 
   public XPathParser(String xml) {
@@ -139,8 +138,16 @@ public class XPathParser {
     return evalString(document, expression);
   }
 
+  /**
+   * 解析XML文件中的字符串
+   *
+   * @author yangwenxin
+   * @date 2023-03-20 10:03
+   */
   public String evalString(Object root, String expression) {
+    // 解析出字符串结果
     String result = (String) evaluate(expression, root, XPathConstants.STRING);
+    // 对字符串中的属性进行处理
     result = PropertyParser.parse(result, variables);
     return result;
   }
@@ -218,8 +225,17 @@ public class XPathParser {
     return new XNode(this, node, variables);
   }
 
+  /**
+   * 进行XML节点的解析
+   *
+   * @param expression 解析的语句
+   * @param root       解析根节点
+   * @param returnType 返回值类型
+   * @return 解析结果
+   */
   private Object evaluate(String expression, Object root, QName returnType) {
     try {
+      // 对指定的root节点运行解析语法expression，获得returnType类型的解析结果
       return xpath.evaluate(expression, root, returnType);
     } catch (Exception e) {
       throw new BuilderException("Error evaluating XPath.  Cause: " + e, e);
@@ -230,12 +246,17 @@ public class XPathParser {
     // important: this must only be called AFTER common constructor
     try {
       DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+      // 解析文档是否校验
       factory.setValidating(validation);
-
+      // 是否提供对xml名称空间的支持
       factory.setNamespaceAware(false);
+      // 是否忽视注释
       factory.setIgnoringComments(true);
+      // 是否消除元素内容的空格
       factory.setIgnoringElementContentWhitespace(false);
+      // 是否将CDATA节点转换为文本节点并将其附加到邻近的文本节点
       factory.setCoalescing(false);
+      // 是否扩展实体引用节点
       factory.setExpandEntityReferences(true);
 
       DocumentBuilder builder = factory.newDocumentBuilder();
