@@ -15,22 +15,29 @@
  */
 package org.apache.ibatis.builder;
 
-import java.util.List;
-
 import org.apache.ibatis.mapping.Discriminator;
 import org.apache.ibatis.mapping.ResultMap;
 import org.apache.ibatis.mapping.ResultMapping;
+
+import java.util.List;
 
 /**
  * @author Eduardo Macarron
  */
 public class ResultMapResolver {
+  // 解析器
   private final MapperBuilderAssistant assistant;
+  // resultMap的id
   private final String id;
+  // resultType的type属性，即目标对象类型
   private final Class<?> type;
+  // resultMap的extends属性，即继承属性
   private final String extend;
+  // resultMap的Discriminator节点，即鉴别器
   private final Discriminator discriminator;
+  // resultMap中的属性映射列表
   private final List<ResultMapping> resultMappings;
+  // resultMap的autoMapping属性，即是否开启自动映射
   private final Boolean autoMapping;
 
   public ResultMapResolver(MapperBuilderAssistant assistant, String id, Class<?> type, String extend, Discriminator discriminator, List<ResultMapping> resultMappings, Boolean autoMapping) {

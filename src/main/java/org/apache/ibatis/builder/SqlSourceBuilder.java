@@ -15,10 +15,6 @@
  */
 package org.apache.ibatis.builder;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.ibatis.mapping.ParameterMapping;
 import org.apache.ibatis.mapping.SqlSource;
 import org.apache.ibatis.parsing.GenericTokenParser;
@@ -27,6 +23,10 @@ import org.apache.ibatis.reflection.MetaClass;
 import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.type.JdbcType;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Clinton Begin
@@ -39,10 +39,22 @@ public class SqlSourceBuilder extends BaseBuilder {
     super(configuration);
   }
 
+  /**
+   * 将DynamicSqlSource和RawSqlSource中的"#{}"符号替换掉，从而将它们转化为StaticSqlSource
+   *
+   * @param originalSql          sqlNode.apply()拼接之后的SQL语句。已经不包含<if><where>等节点，也不包含${}符号
+   * @param parameterType        实参类型
+   * @param additionalParameters 附加参数
+   * @return 解析结束的StaticSqlSource
+   */
   public SqlSource parse(String originalSql, Class<?> parameterType, Map<String, Object> additionalParameters) {
+    // 用来完成#{}处理的处理器
     ParameterMappingTokenHandler handler = new ParameterMappingTokenHandler(configuration, parameterType, additionalParameters);
+    // 通用的占位符解析器，用来进行占位符替换
     GenericTokenParser parser = new GenericTokenParser("#{", "}", handler);
+    // 将#{}替换为?的SQL语句
     String sql = parser.parse(originalSql);
+    // 生成新的StaticSqlSource对象
     return new StaticSqlSource(configuration, sql, handler.getParameterMappings());
   }
 

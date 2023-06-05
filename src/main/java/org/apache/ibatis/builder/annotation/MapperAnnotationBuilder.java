@@ -15,50 +15,9 @@
  */
 package org.apache.ibatis.builder.annotation;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Array;
-import java.lang.reflect.GenericArrayType;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Set;
-
-import org.apache.ibatis.annotations.Arg;
-import org.apache.ibatis.annotations.CacheNamespace;
-import org.apache.ibatis.annotations.CacheNamespaceRef;
-import org.apache.ibatis.annotations.Case;
-import org.apache.ibatis.annotations.ConstructorArgs;
-import org.apache.ibatis.annotations.Delete;
-import org.apache.ibatis.annotations.DeleteProvider;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.InsertProvider;
-import org.apache.ibatis.annotations.Lang;
-import org.apache.ibatis.annotations.MapKey;
-import org.apache.ibatis.annotations.Options;
-import org.apache.ibatis.annotations.Options.FlushCachePolicy;
-import org.apache.ibatis.annotations.Property;
-import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.*;
 import org.apache.ibatis.annotations.ResultMap;
-import org.apache.ibatis.annotations.ResultType;
-import org.apache.ibatis.annotations.Results;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.SelectKey;
-import org.apache.ibatis.annotations.SelectProvider;
-import org.apache.ibatis.annotations.TypeDiscriminator;
-import org.apache.ibatis.annotations.Update;
-import org.apache.ibatis.annotations.UpdateProvider;
+import org.apache.ibatis.annotations.Options.FlushCachePolicy;
 import org.apache.ibatis.binding.BindingException;
 import org.apache.ibatis.binding.MapperMethod.ParamMap;
 import org.apache.ibatis.builder.BuilderException;
@@ -72,15 +31,7 @@ import org.apache.ibatis.executor.keygen.KeyGenerator;
 import org.apache.ibatis.executor.keygen.NoKeyGenerator;
 import org.apache.ibatis.executor.keygen.SelectKeyGenerator;
 import org.apache.ibatis.io.Resources;
-import org.apache.ibatis.mapping.Discriminator;
-import org.apache.ibatis.mapping.FetchType;
-import org.apache.ibatis.mapping.MappedStatement;
-import org.apache.ibatis.mapping.ResultFlag;
-import org.apache.ibatis.mapping.ResultMapping;
-import org.apache.ibatis.mapping.ResultSetType;
-import org.apache.ibatis.mapping.SqlCommandType;
-import org.apache.ibatis.mapping.SqlSource;
-import org.apache.ibatis.mapping.StatementType;
+import org.apache.ibatis.mapping.*;
 import org.apache.ibatis.parsing.PropertyParser;
 import org.apache.ibatis.reflection.TypeParameterResolver;
 import org.apache.ibatis.scripting.LanguageDriver;
@@ -90,6 +41,12 @@ import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.TypeHandler;
 import org.apache.ibatis.type.UnknownTypeHandler;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.*;
+import java.util.*;
 
 /**
  * @author Clinton Begin
@@ -105,11 +62,13 @@ public class MapperAnnotationBuilder {
   private final Class<?> type;
 
   static {
+    // 四种直接注解映射
     SQL_ANNOTATION_TYPES.add(Select.class);
     SQL_ANNOTATION_TYPES.add(Insert.class);
     SQL_ANNOTATION_TYPES.add(Update.class);
     SQL_ANNOTATION_TYPES.add(Delete.class);
 
+    // 四种间接注解映射
     SQL_PROVIDER_ANNOTATION_TYPES.add(SelectProvider.class);
     SQL_PROVIDER_ANNOTATION_TYPES.add(InsertProvider.class);
     SQL_PROVIDER_ANNOTATION_TYPES.add(UpdateProvider.class);
@@ -123,26 +82,41 @@ public class MapperAnnotationBuilder {
     this.type = type;
   }
 
+  /**
+   * 解析包含注解的接口文档
+   *
+   * @author yangwenxin
+   * @date 2023-06-05 10:29
+   */
   public void parse() {
     String resource = type.toString();
+    // 防止重复解析
     if (!configuration.isResourceLoaded(resource)) {
+      // 寻找类名对应的resource路径下是否有xml配置，如果有则解析掉。这样就支持注解和xml混合使用
       loadXmlResource();
+      // 记录资源路径
       configuration.addLoadedResource(resource);
+      // 设置命名空间
       assistant.setCurrentNamespace(type.getName());
+      // 处理缓存
       parseCache();
       parseCacheRef();
       Method[] methods = type.getMethods();
       for (Method method : methods) {
         try {
           // issue #237
+          // 排除桥接方法
           if (!method.isBridge()) {
+            // 解析该方法
             parseStatement(method);
           }
         } catch (IncompleteElementException e) {
+          // 解析异常的方法暂存起来
           configuration.addIncompleteMethod(new MethodResolver(this, method));
         }
       }
     }
+    // 处理解析异常的方法
     parsePendingMethods();
   }
 
@@ -296,22 +270,34 @@ public class MapperAnnotationBuilder {
     return null;
   }
 
+  /**
+   * 解析该方法，主要是解析该方法上的注解信息
+   *
+   * @author yangwenxin
+   * @date 2023-06-05 10:38
+   */
   void parseStatement(Method method) {
+    // 获取方法的参数类型
     Class<?> parameterTypeClass = getParameterType(method);
+    // 获取方法的脚本语言驱动
     LanguageDriver languageDriver = getLanguageDriver(method);
+    // 通过注解获取SqlSource
     SqlSource sqlSource = getSqlSourceFromAnnotations(method, parameterTypeClass, languageDriver);
     if (sqlSource != null) {
+      // 获取方法上可能存在的配置信息，配置信息由@Options注解指定
       Options options = method.getAnnotation(Options.class);
       final String mappedStatementId = type.getName() + "." + method.getName();
       Integer fetchSize = null;
       Integer timeout = null;
       StatementType statementType = StatementType.PREPARED;
+      // 用默认值初始化各项设置
       ResultSetType resultSetType = configuration.getDefaultResultSetType();
       SqlCommandType sqlCommandType = getSqlCommandType(method);
       boolean isSelect = sqlCommandType == SqlCommandType.SELECT;
       boolean flushCache = !isSelect;
       boolean useCache = isSelect;
 
+      // 处理主键自动生成的问题
       KeyGenerator keyGenerator;
       String keyProperty = null;
       String keyColumn = null;
@@ -332,6 +318,7 @@ public class MapperAnnotationBuilder {
         keyGenerator = NoKeyGenerator.INSTANCE;
       }
 
+      // 如果存在@Options注解，则根据其中的配置信息重新配置
       if (options != null) {
         if (FlushCachePolicy.TRUE.equals(options.flushCache())) {
           flushCache = true;
@@ -347,6 +334,7 @@ public class MapperAnnotationBuilder {
         }
       }
 
+      // 返回结果ResultMap处理
       String resultMapId = null;
       ResultMap resultMapAnnotation = method.getAnnotation(ResultMap.class);
       if (resultMapAnnotation != null) {
@@ -355,31 +343,32 @@ public class MapperAnnotationBuilder {
         resultMapId = parseResultMap(method);
       }
 
+      // 将获取的映射信息存入configuration
       assistant.addMappedStatement(
-          mappedStatementId,
-          sqlSource,
-          statementType,
-          sqlCommandType,
-          fetchSize,
-          timeout,
-          // ParameterMapID
-          null,
-          parameterTypeClass,
-          resultMapId,
-          getReturnType(method),
-          resultSetType,
-          flushCache,
-          useCache,
-          // TODO gcode issue #577
-          false,
-          keyGenerator,
-          keyProperty,
-          keyColumn,
-          // DatabaseID
-          null,
-          languageDriver,
-          // ResultSets
-          options != null ? nullOrEmpty(options.resultSets()) : null);
+        mappedStatementId,
+        sqlSource,
+        statementType,
+        sqlCommandType,
+        fetchSize,
+        timeout,
+        // ParameterMapID
+        null,
+        parameterTypeClass,
+        resultMapId,
+        getReturnType(method),
+        resultSetType,
+        flushCache,
+        useCache,
+        // TODO gcode issue #577
+        false,
+        keyGenerator,
+        keyProperty,
+        keyColumn,
+        // DatabaseID
+        null,
+        languageDriver,
+        // ResultSets
+        options != null ? nullOrEmpty(options.resultSets()) : null);
     }
   }
 
@@ -465,19 +454,33 @@ public class MapperAnnotationBuilder {
     return returnType;
   }
 
+  /**
+   * 通过注解获取SqlSource对象
+   *
+   * @author yangwenxin
+   * @date 2023-06-05 10:48
+   */
   private SqlSource getSqlSourceFromAnnotations(Method method, Class<?> parameterType, LanguageDriver languageDriver) {
     try {
+      // 遍历寻找是否有Select、Insert、Update、Delete四个注解之一
       Class<? extends Annotation> sqlAnnotationType = getSqlAnnotationType(method);
+      // 遍历寻找是否有SelectProvider、InsertProvider、UpdateProvider、DeleteProvider四个注解之一
       Class<? extends Annotation> sqlProviderAnnotationType = getSqlProviderAnnotationType(method);
       if (sqlAnnotationType != null) {
         if (sqlProviderAnnotationType != null) {
+          // 两个注解不可以同时使用
           throw new BindingException("You cannot supply both a static SQL and SqlProvider to method named " + method.getName());
         }
+        // 含有Select、Insert、Update、Delete四个注解之一
         Annotation sqlAnnotation = method.getAnnotation(sqlAnnotationType);
+        // 取出value值
         final String[] strings = (String[]) sqlAnnotation.getClass().getMethod("value").invoke(sqlAnnotation);
+        // 基于字符串构建SqlSource
         return buildSqlSourceFromStrings(strings, parameterType, languageDriver);
       } else if (sqlProviderAnnotationType != null) {
+        // 含有SelectProvider、InsertProvider、UpdateProvider、DeleteProvider四个注解之一
         Annotation sqlProviderAnnotation = method.getAnnotation(sqlProviderAnnotationType);
+        // 根据对应的方法获取SqlSource
         return new ProviderSqlSource(assistant.getConfiguration(), sqlProviderAnnotation, type, method);
       }
       return null;
@@ -486,6 +489,12 @@ public class MapperAnnotationBuilder {
     }
   }
 
+  /**
+   * 基于字符串创建SqlSource对象
+   *
+   * @author yangwenxin
+   * @date 2023-06-05 10:54
+   */
   private SqlSource buildSqlSourceFromStrings(String[] strings, Class<?> parameterTypeClass, LanguageDriver languageDriver) {
     final StringBuilder sql = new StringBuilder();
     for (String fragment : strings) {

@@ -15,14 +15,14 @@
  */
 package org.apache.ibatis.builder.xml;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Locale;
-
 import org.apache.ibatis.io.Resources;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Locale;
 
 /**
  * Offline entity resolver for the MyBatis DTDs.
@@ -55,8 +55,10 @@ public class XMLMapperEntityResolver implements EntityResolver {
       if (systemId != null) {
         String lowerCaseSystemId = systemId.toLowerCase(Locale.ENGLISH);
         if (lowerCaseSystemId.contains(MYBATIS_CONFIG_SYSTEM) || lowerCaseSystemId.contains(IBATIS_CONFIG_SYSTEM)) {
+          // 配置文档
           return getInputSource(MYBATIS_CONFIG_DTD, publicId, systemId);
         } else if (lowerCaseSystemId.contains(MYBATIS_MAPPER_SYSTEM) || lowerCaseSystemId.contains(IBATIS_MAPPER_SYSTEM)) {
+          // 映射文档
           return getInputSource(MYBATIS_MAPPER_DTD, publicId, systemId);
         }
       }
@@ -66,6 +68,12 @@ public class XMLMapperEntityResolver implements EntityResolver {
     }
   }
 
+  /**
+   * 从本地获取对应的DTD文件并返回
+   *
+   * @author yangwenxin
+   * @date 2023-03-21 14:36
+   */
   private InputSource getInputSource(String path, String publicId, String systemId) {
     InputSource source = null;
     if (path != null) {

@@ -15,5 +15,6 @@
  */
 /**
  * Parses XML files to create a Configuration
+ * 用来完成xml文件的解析工作
  */
 package org.apache.ibatis.builder.xml;

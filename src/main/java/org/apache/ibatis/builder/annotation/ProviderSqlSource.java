@@ -15,12 +15,6 @@
  */
 package org.apache.ibatis.builder.annotation;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Map;
-
 import org.apache.ibatis.annotations.Lang;
 import org.apache.ibatis.builder.BuilderException;
 import org.apache.ibatis.mapping.BoundSql;
@@ -29,20 +23,35 @@ import org.apache.ibatis.reflection.ParamNameResolver;
 import org.apache.ibatis.scripting.LanguageDriver;
 import org.apache.ibatis.session.Configuration;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Map;
+
 /**
  * @author Clinton Begin
  * @author Kazuki Shimizu
  */
 public class ProviderSqlSource implements SqlSource {
 
+  // Configuration对象
   private final Configuration configuration;
+  // *Provider注解上type属性所指的类
   private final Class<?> providerType;
+  // 语言驱动
   private final LanguageDriver languageDriver;
+  // 含有注解的接口方法
   private final Method mapperMethod;
+  // *Provider注解上method属性所指的方法
   private Method providerMethod;
+  // 给定SQL语句的方法对应的参数
   private String[] providerMethodArgumentNames;
+  // 给定SQL语句的方法对应的参数类型
   private Class<?>[] providerMethodParameterTypes;
+  // ProviderContext对象
   private ProviderContext providerContext;
+  // ProviderContext编号
   private Integer providerContextIndex;
 
   /**
@@ -99,8 +108,8 @@ public class ProviderSqlSource implements SqlSource {
       if (parameterType == ProviderContext.class) {
         if (this.providerContext != null) {
           throw new BuilderException("Error creating SqlSource for SqlProvider. ProviderContext found multiple in SqlProvider method ("
-              + this.providerType.getName() + "." + providerMethod.getName()
-              + "). ProviderContext can not define multiple in SqlProvider method argument.");
+            + this.providerType.getName() + "." + providerMethod.getName()
+            + "). ProviderContext can not define multiple in SqlProvider method argument.");
         }
         this.providerContext = new ProviderContext(mapperType, mapperMethod, configuration.getDatabaseId());
         this.providerContextIndex = i;
@@ -108,31 +117,54 @@ public class ProviderSqlSource implements SqlSource {
     }
   }
 
+  /**
+   * 获取一个BoundSql对象
+   *
+   * @author yangwenxin
+   * @date 2023-06-05 11:11
+   */
   @Override
   public BoundSql getBoundSql(Object parameterObject) {
+    // 获取SqlSource对象
     SqlSource sqlSource = createSqlSource(parameterObject);
+    // 从SqlSource中获取BoundSql对象
     return sqlSource.getBoundSql(parameterObject);
   }
 
+  /**
+   * 三步获取BoundSql对象
+   * 1. 调用*Provider注解的type类中的method方法，从而获得SQL字符串
+   * 2. 向languageDriver的createSqlSource方法传入SQL字符串等参数，新生成一个SqlSource对象
+   * 3. 调用新生成的SqlSource对象的getBoundSql方法，获得BoundSql对象
+   *
+   * @author yangwenxin
+   * @date 2023-06-05 11:20
+   */
   private SqlSource createSqlSource(Object parameterObject) {
     try {
+      // SQL字符串信息
       String sql;
+      // 参数是Map
       if (parameterObject instanceof Map) {
         int bindParameterCount = providerMethodParameterTypes.length - (providerContext == null ? 0 : 1);
         if (bindParameterCount == 1 &&
           (providerMethodParameterTypes[Integer.valueOf(0).equals(providerContextIndex) ? 1 : 0].isAssignableFrom(parameterObject.getClass()))) {
+          // 调用@Provider注解的type类中的method方法，从而获得SQL字符串
           sql = invokeProviderMethod(extractProviderMethodArguments(parameterObject));
         } else {
           @SuppressWarnings("unchecked")
           Map<String, Object> params = (Map<String, Object>) parameterObject;
           sql = invokeProviderMethod(extractProviderMethodArguments(params, providerMethodArgumentNames));
         }
+        // *Provider注解的type类中的method方法无须输入参数
       } else if (providerMethodParameterTypes.length == 0) {
         sql = invokeProviderMethod();
+        // *Provider注解的type类中的method方法只有一个输入参数
       } else if (providerMethodParameterTypes.length == 1) {
         if (providerContext == null) {
           sql = invokeProviderMethod(parameterObject);
         } else {
+          // *Provider注解的type类中的method方法输入参数为providerContext对象
           sql = invokeProviderMethod(providerContext);
         }
       } else if (providerMethodParameterTypes.length == 2) {
@@ -143,12 +175,13 @@ public class ProviderSqlSource implements SqlSource {
           + "' because SqlProvider method arguments for '" + mapperMethod + "' is an invalid combination.");
       }
       Class<?> parameterType = parameterObject == null ? Object.class : parameterObject.getClass();
+      // 调用languageDriver生成SqlSource对象
       return languageDriver.createSqlSource(configuration, sql, parameterType);
     } catch (BuilderException e) {
       throw e;
     } catch (Exception e) {
       throw new BuilderException("Error invoking SqlProvider method '" + providerMethod
-          + "' with specify parameter '" + (parameterObject == null ? null : parameterObject.getClass()) + "'.  Cause: " + extractRootCause(e), e);
+        + "' with specify parameter '" + (parameterObject == null ? null : parameterObject.getClass()) + "'.  Cause: " + extractRootCause(e), e);
     }
   }
 

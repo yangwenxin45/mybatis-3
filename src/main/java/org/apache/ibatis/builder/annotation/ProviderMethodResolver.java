@@ -16,12 +16,12 @@
 
 package org.apache.ibatis.builder.annotation;
 
+import org.apache.ibatis.builder.BuilderException;
+
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import org.apache.ibatis.builder.BuilderException;
 
 /**
  * The interface that resolve an SQL provider method via an SQL provider class.
@@ -48,18 +48,23 @@ public interface ProviderMethodResolver {
    * @return an SQL provider method
    * @throws BuilderException Throws when cannot resolve a target method
    */
+  // 作用是从@*Provider注解的type属性所指向的类中找出method属性中所指定的方法
   default Method resolveMethod(ProviderContext context) {
+    // 找出同名方法，接口默认方法中的this是指调用该方法的实体对象
     List<Method> sameNameMethods = Arrays.stream(getClass().getMethods())
         .filter(m -> m.getName().equals(context.getMapperMethod().getName()))
         .collect(Collectors.toList());
+    // 如果没有找到指定的方法，则@*Provider注解中的type属性所指向的类中不含有method属性中所指定的方法
     if (sameNameMethods.isEmpty()) {
       throw new BuilderException("Cannot resolve the provider method because '"
           + context.getMapperMethod().getName() + "' not found in SqlProvider '" + getClass().getName() + "'.");
     }
+    // 根据返回类型再次判断，返回类型必须是CharSequence类或其子类
     List<Method> targetMethods = sameNameMethods.stream()
         .filter(m -> CharSequence.class.isAssignableFrom(m.getReturnType()))
         .collect(Collectors.toList());
     if (targetMethods.size() == 1) {
+      // 方法唯一，返回该方法
       return targetMethods.get(0);
     }
     if (targetMethods.isEmpty()) {

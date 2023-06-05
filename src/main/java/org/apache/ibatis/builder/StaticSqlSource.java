@@ -15,20 +15,23 @@
  */
 package org.apache.ibatis.builder;
 
-import java.util.List;
-
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.ParameterMapping;
 import org.apache.ibatis.mapping.SqlSource;
 import org.apache.ibatis.session.Configuration;
+
+import java.util.List;
 
 /**
  * @author Clinton Begin
  */
 public class StaticSqlSource implements SqlSource {
 
+  // 经过解析后，不存在${}和#{}这两种符号，只剩下?符号的SQL语句
   private final String sql;
+  // SQL语句对应的参数列表
   private final List<ParameterMapping> parameterMappings;
+  // 配置信息
   private final Configuration configuration;
 
   public StaticSqlSource(Configuration configuration, String sql) {
@@ -41,6 +44,12 @@ public class StaticSqlSource implements SqlSource {
     this.configuration = configuration;
   }
 
+  /**
+   * 组件一个BoundSql对象
+   *
+   * @param parameterObject parameterObject对象
+   * @return
+   */
   @Override
   public BoundSql getBoundSql(Object parameterObject) {
     return new BoundSql(configuration, sql, parameterMappings, parameterObject);

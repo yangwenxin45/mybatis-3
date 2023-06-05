@@ -19,6 +19,8 @@ import java.util.HashMap;
 
 /**
  * Inline parameter expression parser. Supported grammar (simplified):
+ * 属性解析器，用来将描述属性的字符串解析为键值对的形式
+ * 参考ParameterExpressionTest测试类
  *
  * <pre>
  * inline-parameter = (propertyName | expression) oldJdbcType attributes
@@ -59,6 +61,7 @@ public class ParameterExpression extends HashMap<String, String> {
       }
       right++;
     }
+    // 解析出最前面"("和最后面")"之间的字符串
     put("expression", expression.substring(left, right - 1));
     jdbcTypeOpt(expression, right);
   }
@@ -66,11 +69,18 @@ public class ParameterExpression extends HashMap<String, String> {
   private void property(String expression, int left) {
     if (left < expression.length()) {
       int right = skipUntil(expression, left, ",:");
+      // 解析出第一个","或者":"之前的字符串
       put("property", trimmedStr(expression, left, right));
       jdbcTypeOpt(expression, right);
     }
   }
 
+  /**
+   * 找出第一个非空格字符出现的下标
+   *
+   * @author yangwenxin
+   * @date 2023-03-21 11:53
+   */
   private int skipWS(String expression, int p) {
     for (int i = p; i < expression.length(); i++) {
       if (expression.charAt(i) > 0x20) {
@@ -80,6 +90,13 @@ public class ParameterExpression extends HashMap<String, String> {
     return expression.length();
   }
 
+
+  /**
+   * 找出第一个endChars字符出现的下标
+   *
+   * @author yangwenxin
+   * @date 2023-03-21 11:54
+   */
   private int skipUntil(String expression, int p, final String endChars) {
     for (int i = p; i < expression.length(); i++) {
       char c = expression.charAt(i);
@@ -118,9 +135,11 @@ public class ParameterExpression extends HashMap<String, String> {
     int left = skipWS(expression, p);
     if (left < expression.length()) {
       int right = skipUntil(expression, left, "=");
+      // 获取属性名
       String name = trimmedStr(expression, left, right);
       left = right + 1;
       right = skipUntil(expression, left, ",");
+      // 获取属性值
       String value = trimmedStr(expression, left, right);
       put(name, value);
       option(expression, right + 1);

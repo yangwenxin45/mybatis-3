@@ -18,10 +18,14 @@ package org.apache.ibatis.builder;
 import org.apache.ibatis.cache.Cache;
 
 /**
+ * 用来处理多个命名空间共享缓存的问题
+ *
  * @author Clinton Begin
  */
 public class CacheRefResolver {
+  // 解析器
   private final MapperBuilderAssistant assistant;
+  // 被应用的namespace，即使用cacheRef的namespace缓存空间
   private final String cacheRefNamespace;
 
   public CacheRefResolver(MapperBuilderAssistant assistant, String cacheRefNamespace) {

@@ -15,11 +15,6 @@
  */
 package org.apache.ibatis.builder.xml;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
-
 import org.apache.ibatis.builder.BuilderException;
 import org.apache.ibatis.builder.IncompleteElementException;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
@@ -30,7 +25,15 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+
 /**
+ * 数据库操作语句中的引用语句片段解析
+ * 将SQL语句中的include节点替换为被引用的SQL片段
+ *
  * @author Frank D. Martinez [mnesarco]
  */
 public class XMLIncludeTransformer {
@@ -45,45 +48,59 @@ public class XMLIncludeTransformer {
 
   public void applyIncludes(Node source) {
     Properties variablesContext = new Properties();
+    // 读取全局属性信息
     Properties configurationVariables = configuration.getVariables();
     Optional.ofNullable(configurationVariables).ifPresent(variablesContext::putAll);
     applyIncludes(source, variablesContext, false);
   }
 
   /**
+   * 替换步骤：
+   * 1. 找到目标节点
+   * 2. 用目标节点替换include节点
+   * 3. 将目标节点的内容复制到节点前
+   * 4. 删除目标节点
    * Recursively apply includes through all SQL fragments.
    * @param source Include node in DOM tree
-   * @param variablesContext Current context for static variables with values
+   * @param variablesContext Current context for static variables with values 是否嵌套
    */
   private void applyIncludes(Node source, final Properties variablesContext, boolean included) {
+    // 当前节点是include节点
     if (source.getNodeName().equals("include")) {
+      // 找出被应用的节点
       Node toInclude = findSqlFragment(getStringAttribute(source, "refid"), variablesContext);
       Properties toIncludeContext = getVariablesContext(source, variablesContext);
+      // 递归处理被引用节点中的include节点
       applyIncludes(toInclude, toIncludeContext, true);
       if (toInclude.getOwnerDocument() != source.getOwnerDocument()) {
         toInclude = source.getOwnerDocument().importNode(toInclude, true);
       }
+      // 完成include节点的替换
       source.getParentNode().replaceChild(toInclude, source);
       while (toInclude.hasChildNodes()) {
         toInclude.getParentNode().insertBefore(toInclude.getFirstChild(), toInclude);
       }
       toInclude.getParentNode().removeChild(toInclude);
+      // 元素节点
     } else if (source.getNodeType() == Node.ELEMENT_NODE) {
       if (included && !variablesContext.isEmpty()) {
         // replace variables in attribute values
+        // 用属性值替代变量
         NamedNodeMap attributes = source.getAttributes();
         for (int i = 0; i < attributes.getLength(); i++) {
           Node attr = attributes.item(i);
           attr.setNodeValue(PropertyParser.parse(attr.getNodeValue(), variablesContext));
         }
       }
+      // 循环到下层节点递归处理下层的include节点
       NodeList children = source.getChildNodes();
       for (int i = 0; i < children.getLength(); i++) {
         applyIncludes(children.item(i), variablesContext, included);
       }
     } else if (included && source.getNodeType() == Node.TEXT_NODE
-        && !variablesContext.isEmpty()) {
+      && !variablesContext.isEmpty()) {
       // replace variables in text node
+      // 用属性值替代变量
       source.setNodeValue(PropertyParser.parse(source.getNodeValue(), variablesContext));
     }
   }

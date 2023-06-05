@@ -15,11 +15,6 @@
  */
 package org.apache.ibatis.builder;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.regex.Pattern;
-
 import org.apache.ibatis.mapping.ParameterMode;
 import org.apache.ibatis.mapping.ResultSetType;
 import org.apache.ibatis.session.Configuration;
@@ -28,7 +23,17 @@ import org.apache.ibatis.type.TypeAliasRegistry;
 import org.apache.ibatis.type.TypeHandler;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.regex.Pattern;
+
 /**
+ * *ValueOf：类型转化函数，负责将输入参数转换为指定的类型，并支持默认值设置
+ * resolve*：字符串转枚举类型函数，根据字符串找出指定的枚举类型并返回
+ * createIntance：根据类型别名创建类型实例
+ * resolveTypeHandler：根据类型处理器别名返回类型处理器实例
+ *
  * @author Clinton Begin
  */
 public abstract class BaseBuilder {
