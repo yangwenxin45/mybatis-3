@@ -16,6 +16,8 @@
 package org.apache.ibatis.mapping;
 
 /**
+ * SQL语句种类，指是否为预编译的语句、是否为存储过程等
+ *
  * @author Clinton Begin
  */
 public enum StatementType {

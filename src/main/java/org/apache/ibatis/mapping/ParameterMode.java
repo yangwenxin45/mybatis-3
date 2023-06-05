@@ -16,6 +16,8 @@
 package org.apache.ibatis.mapping;
 
 /**
+ * 参数类型，指输入参数、输出参数等
+ *
  * @author Clinton Begin
  */
 public enum ParameterMode {

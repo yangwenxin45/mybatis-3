@@ -15,13 +15,13 @@
  */
 package org.apache.ibatis.mapping;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.reflection.property.PropertyTokenizer;
 import org.apache.ibatis.session.Configuration;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * An actual SQL String got from an {@link SqlSource} after having processed any dynamic content.
@@ -30,15 +30,21 @@ import org.apache.ibatis.session.Configuration;
  * the value from).
  * <p>
  * Can also have additional parameters that are created by the dynamic language (for loops, bind...).
+ * SqlSource类进一步处理的产物
  *
  * @author Clinton Begin
  */
 public class BoundSql {
 
+  // 可能含有"？"占位符的SQL语句
   private final String sql;
+  // 参数映射列表
   private final List<ParameterMapping> parameterMappings;
+  // 实参对象本身
   private final Object parameterObject;
+  // 实参
   private final Map<String, Object> additionalParameters;
+  // additionalParameters的包装对象
   private final MetaObject metaParameters;
 
   public BoundSql(Configuration configuration, String sql, List<ParameterMapping> parameterMappings, Object parameterObject) {

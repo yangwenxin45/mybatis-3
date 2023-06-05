@@ -15,15 +15,6 @@
  */
 package org.apache.ibatis.mapping;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Constructor;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.builder.BuilderException;
 import org.apache.ibatis.logging.Log;
@@ -31,23 +22,42 @@ import org.apache.ibatis.logging.LogFactory;
 import org.apache.ibatis.reflection.ParamNameUtil;
 import org.apache.ibatis.session.Configuration;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
+import java.util.*;
+
 /**
+ * ResultMap节点对应的解析实体类
+ *
  * @author Clinton Begin
  */
 public class ResultMap {
+  // 全局配置信息
   private Configuration configuration;
 
+  // resultMap的编号
   private String id;
+  // 最终输出结果对应的Java类
   private Class<?> type;
+  // XML中的<result>的列表，即ResultMapping列表，所有的属性
   private List<ResultMapping> resultMappings;
+  // XML中的<id>和<idArg>的列表，所有的id属性
   private List<ResultMapping> idResultMappings;
+  // XML中的<constructor>中各个属性的列表，所有非构造方法中的属性
   private List<ResultMapping> constructorResultMappings;
+  // XML中的非<constructor>相关的属性列表，所有非构造方法中的属性
   private List<ResultMapping> propertyResultMappings;
+  // 所有参与映射的数据库中字段的集合
   private Set<String> mappedColumns;
+  // 所有参与映射的Java对象属性集合
   private Set<String> mappedProperties;
+  // 鉴别器
   private Discriminator discriminator;
+  // 是否存在嵌套映射
   private boolean hasNestedResultMaps;
+  // 是否存在嵌套查询
   private boolean hasNestedQueries;
+  // 是否启动自动映射
   private Boolean autoMapping;
 
   private ResultMap() {

@@ -15,5 +15,11 @@
  */
 /**
  * Base package for mapping.
+ * mapping包定义了Mybatis中众多的解析实体类，主要包括完成以下功能：
+ * 1. SQL语句处理功能
+ * 2. 输出结果处理功能
+ * 3. 输入参数处理功能
+ * 4. 多数据库种类处理功能
+ * 5. 其他功能
  */
 package org.apache.ibatis.mapping;

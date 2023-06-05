@@ -16,6 +16,8 @@
 package org.apache.ibatis.mapping;
 
 /**
+ * 返回结果中属性的特殊标志，表示是否为id属性、是否为构造器属性
+ *
  * @author Clinton Begin
  */
 public enum ResultFlag {

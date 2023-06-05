@@ -15,17 +15,22 @@
  */
 package org.apache.ibatis.mapping;
 
+import org.apache.ibatis.session.Configuration;
+
 import java.util.Collections;
 import java.util.Map;
 
-import org.apache.ibatis.session.Configuration;
-
 /**
+ * Discriminator是resultMap内部的鉴别器
+ * 就像程序中的选择语句一样，它使得数据查询结果能够根据某些条件的不同而进行不同的映射
+ *
  * @author Clinton Begin
  */
 public class Discriminator {
 
+  // 存储条件判断行的信息
   private ResultMapping resultMapping;
+  // 存储选择项的信息，键为value值，值为resultMap值
   private Map<String, String> discriminatorMap;
 
   Discriminator() {

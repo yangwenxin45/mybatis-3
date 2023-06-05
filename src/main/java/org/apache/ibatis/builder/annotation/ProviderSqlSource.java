@@ -30,6 +30,8 @@ import java.lang.reflect.Modifier;
 import java.util.Map;
 
 /**
+ * 通过注解映射的形式获取的SQL语句
+ *
  * @author Clinton Begin
  * @author Kazuki Shimizu
  */

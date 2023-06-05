@@ -21,6 +21,9 @@ import org.apache.ibatis.mapping.SqlSource;
 import org.apache.ibatis.session.Configuration;
 
 /**
+ * 动态SQL语句
+ * 所谓dongtaiSQL是指含有动态SQL节点（如"if"节点）或者含有"${}"占位符
+ *
  * @author Clinton Begin
  */
 public class DynamicSqlSource implements SqlSource {

@@ -23,6 +23,9 @@ import org.apache.ibatis.session.Configuration;
 import java.util.List;
 
 /**
+ * 静态语句，语句中可能含有"？"，可以直接提交给数据库执行
+ * DynamicSqlSource和RawSqlSource都会被处理成StaticSqlSource
+ *
  * @author Clinton Begin
  */
 public class StaticSqlSource implements SqlSource {

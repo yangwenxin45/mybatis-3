@@ -15,16 +15,15 @@
  */
 package org.apache.ibatis.mapping;
 
+import org.apache.ibatis.logging.Log;
+import org.apache.ibatis.logging.LogFactory;
+
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
-
-import javax.sql.DataSource;
-
-import org.apache.ibatis.logging.Log;
-import org.apache.ibatis.logging.LogFactory;
 
 /**
  * Vendor DatabaseId provider.
@@ -41,6 +40,12 @@ public class VendorDatabaseIdProvider implements DatabaseIdProvider {
 
   private Properties properties;
 
+  /**
+   * 用来给出当前传入的DataSource对象对应的databaseId
+   *
+   * @author yangwenxin
+   * @date 2023-06-05 14:10
+   */
   @Override
   public String getDatabaseId(DataSource dataSource) {
     if (dataSource == null) {
@@ -54,13 +59,29 @@ public class VendorDatabaseIdProvider implements DatabaseIdProvider {
     return null;
   }
 
+  /**
+   * 用来将Mybatis配置文件中设置在databaseIdProvider节点中的信息写入VendorDatabaseIdProvider对象中
+   * 这些信息实际是数据库的别名信息
+   *
+   * @author yangwenxin
+   * @date 2023-06-05 14:09
+   */
   @Override
   public void setProperties(Properties p) {
     this.properties = p;
   }
 
+  /**
+   * 获取当前的数据源类型的别名
+   *
+   * @param dataSource 数据源
+   * @return 数据源类型别名
+   * @throws SQLException
+   */
   private String getDatabaseName(DataSource dataSource) throws SQLException {
+    // 获取当前连接的数据库名
     String productName = getDatabaseProductName(dataSource);
+    // 如果设置有properties值，则将获取的数据库名称作为模糊的key，映射为对应的value
     if (this.properties != null) {
       for (Map.Entry<Object, Object> property : properties.entrySet()) {
         if (productName.contains((String) property.getKey())) {
@@ -68,6 +89,7 @@ public class VendorDatabaseIdProvider implements DatabaseIdProvider {
         }
       }
       // no match, return null
+      // 没有找到对应映射
       return null;
     }
     return productName;
