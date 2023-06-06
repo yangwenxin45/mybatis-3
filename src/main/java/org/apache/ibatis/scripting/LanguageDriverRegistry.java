@@ -19,14 +19,24 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * 作为语言驱动的注册表管理所有的语言驱动
+ *
  * @author Frank D. Martinez [mnesarco]
  */
 public class LanguageDriverRegistry {
 
+  // 所有的语言驱动类
   private final Map<Class<? extends LanguageDriver>, LanguageDriver> LANGUAGE_DRIVER_MAP = new HashMap<>();
 
+  // 默认的语言驱动类
   private Class<? extends LanguageDriver> defaultDriverClass;
 
+  /**
+   * 注册驱动
+   *
+   * @author yangwenxin
+   * @date 2023-06-05 15:21
+   */
   public void register(Class<? extends LanguageDriver> cls) {
     if (cls == null) {
       throw new IllegalArgumentException("null is not a valid Language Driver");
@@ -50,6 +60,12 @@ public class LanguageDriverRegistry {
     }
   }
 
+  /**
+   * 从中选取驱动
+   *
+   * @author yangwenxin
+   * @date 2023-06-05 15:21
+   */
   public LanguageDriver getDriver(Class<? extends LanguageDriver> cls) {
     return LANGUAGE_DRIVER_MAP.get(cls);
   }

@@ -22,7 +22,7 @@ import org.apache.ibatis.session.Configuration;
 
 /**
  * 动态SQL语句
- * 所谓dongtaiSQL是指含有动态SQL节点（如"if"节点）或者含有"${}"占位符
+ * 所谓动态SQL是指含有动态SQL节点（如"if"节点）或者含有"${}"占位符
  *
  * @author Clinton Begin
  */
@@ -36,14 +36,25 @@ public class DynamicSqlSource implements SqlSource {
     this.rootSqlNode = rootSqlNode;
   }
 
+  /**
+   * 获取一个BoundSql对象
+   *
+   * @author yangwenxin
+   * @date 2023-06-06 10:47
+   */
   @Override
   public BoundSql getBoundSql(Object parameterObject) {
+    // 创建DynamicSqlSource的辅助类，用来记录DynamicSqlSource解析出来SQL片段信息和参数信息
     DynamicContext context = new DynamicContext(configuration, parameterObject);
+    // 这里会从根节点开始，对节点逐层调用apply方法，经过这一步后，动态节点和"${}"都被替换
     rootSqlNode.apply(context);
+    // 处理占位符、汇总参数信息
     SqlSourceBuilder sqlSourceParser = new SqlSourceBuilder(configuration);
     Class<?> parameterType = parameterObject == null ? Object.class : parameterObject.getClass();
+    // 使用SqlSourceBuilder处理"#{}"，将其转化为"?"，最终生成StaticSqlSource对象
     SqlSource sqlSource = sqlSourceParser.parse(context.getSql(), parameterType, context.getBindings());
     BoundSql boundSql = sqlSource.getBoundSql(parameterObject);
+    // 把context.getBindings()的参数信息放到boundSql的metaParameters中进行保存
     context.getBindings().forEach(boundSql::setAdditionalParameter);
     return boundSql;
   }

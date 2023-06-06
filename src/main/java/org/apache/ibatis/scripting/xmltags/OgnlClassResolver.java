@@ -22,9 +22,9 @@ import org.apache.ibatis.io.Resources;
  * Custom ognl {@code ClassResolver} which behaves same like ognl's
  * {@code DefaultClassResolver}. But uses the {@code Resources}
  * utility class to find the target class instead of {@code Class#forName(String)}.
+ * OGNL通过该类实现类的读取，即将类名转化为一个类
  *
  * @author Daniel Guggi
- *
  * @see <a href='https://github.com/mybatis/mybatis-3/issues/161'>Issue 161</a>
  */
 public class OgnlClassResolver extends DefaultClassResolver {

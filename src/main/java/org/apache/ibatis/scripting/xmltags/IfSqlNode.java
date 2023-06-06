@@ -16,11 +16,16 @@
 package org.apache.ibatis.scripting.xmltags;
 
 /**
+ * 对应数据库操作节点中的if节点。通过if节点可以让Mybatis根据参数等信息决定是否写入一段SQL片段
+ *
  * @author Clinton Begin
  */
 public class IfSqlNode implements SqlNode {
+  // 表达式求值器
   private final ExpressionEvaluator evaluator;
+  // if判断时的测试条件
   private final String test;
+  // 如果if成立，要被拼接的SQL片段信息
   private final SqlNode contents;
 
   public IfSqlNode(SqlNode contents, String test) {
@@ -31,7 +36,9 @@ public class IfSqlNode implements SqlNode {
 
   @Override
   public boolean apply(DynamicContext context) {
+    // 判断if条件是否成立
     if (evaluator.evaluateBoolean(test, context.getBindings())) {
+      // 将contents拼接到context
       contents.apply(context);
       return true;
     }

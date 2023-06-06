@@ -38,20 +38,34 @@ public class XMLLanguageDriver implements LanguageDriver {
     return new DefaultParameterHandler(mappedStatement, parameterObject, boundSql);
   }
 
+  /**
+   * 基于映射文件生成SqlSource
+   *
+   * @author yangwenxin
+   * @date 2023-06-06 10:42
+   */
   @Override
   public SqlSource createSqlSource(Configuration configuration, XNode script, Class<?> parameterType) {
     XMLScriptBuilder builder = new XMLScriptBuilder(configuration, script, parameterType);
     return builder.parseScriptNode();
   }
 
+  /**
+   * 基于注解信息生成SqlSource
+   *
+   * @author yangwenxin
+   * @date 2023-06-06 10:42
+   */
   @Override
   public SqlSource createSqlSource(Configuration configuration, String script, Class<?> parameterType) {
     // issue #3
+    // 对于以"<script>"开头的SQL语句，将使用和映射文件相同的解析方式，从而生成DynamicSqlSource或者RawSqlSource对象
     if (script.startsWith("<script>")) {
       XPathParser parser = new XPathParser(script, false, configuration.getVariables(), new XMLMapperEntityResolver());
       return createSqlSource(configuration, parser.evalNode("/script"), parameterType);
     } else {
       // issue #127
+      // 对于不以"<script>"开头的SQL语句，直接生成DynamicSqlSource或者RawSqlSource对象
       script = PropertyParser.parse(script, configuration.getVariables());
       TextSqlNode textSqlNode = new TextSqlNode(script);
       if (textSqlNode.isDynamic()) {

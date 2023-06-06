@@ -36,6 +36,7 @@ import java.util.HashMap;
  */
 public class RawSqlSource implements SqlSource {
 
+  // StaticSqlSource对象
   private final SqlSource sqlSource;
 
   public RawSqlSource(Configuration configuration, SqlNode rootSqlNode, Class<?> parameterType) {
@@ -45,6 +46,7 @@ public class RawSqlSource implements SqlSource {
   public RawSqlSource(Configuration configuration, String sql, Class<?> parameterType) {
     SqlSourceBuilder sqlSourceParser = new SqlSourceBuilder(configuration);
     Class<?> clazz = parameterType == null ? Object.class : parameterType;
+    // 处理RawSqlSource中的"#{}"占位符，得到StaticSqlSource
     sqlSource = sqlSourceParser.parse(sql, clazz, new HashMap<>());
   }
 
@@ -56,6 +58,7 @@ public class RawSqlSource implements SqlSource {
 
   @Override
   public BoundSql getBoundSql(Object parameterObject) {
+    // BoundSql对象由sqlSource属性持有的StaticSqlSource对象返回
     return sqlSource.getBoundSql(parameterObject);
   }
 

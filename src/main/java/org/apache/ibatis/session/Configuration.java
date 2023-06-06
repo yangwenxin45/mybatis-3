@@ -531,6 +531,12 @@ public class Configuration {
     return languageRegistry;
   }
 
+  /**
+   * 系统的默认语言驱动类是XMLLanguageDriver类，而用户自定义的语言驱动可以覆盖它
+   *
+   * @author yangwenxin
+   * @date 2023-06-05 15:18
+   */
   public void setDefaultScriptingLanguage(Class<? extends LanguageDriver> driver) {
     if (driver == null) {
       driver = XMLLanguageDriver.class;
