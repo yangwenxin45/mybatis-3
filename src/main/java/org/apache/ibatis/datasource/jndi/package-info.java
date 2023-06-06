@@ -15,5 +15,7 @@
  */
 /**
  * JNDI Datasource factory
+ * JNDI（Java Naming and Directory Interface）是Java命名和目录接口，它能够为Java应用程序提供命名和目录访问的接口，我们可以将其理解为一个命名规范
+ * 在使用改规范为资源命名并将资源放入环境中后，可以通过名称从环境中查找对应的资源
  */
 package org.apache.ibatis.datasource.jndi;

@@ -15,12 +15,11 @@
  */
 package org.apache.ibatis.datasource.unpooled;
 
+import org.apache.ibatis.io.Resources;
+
+import javax.sql.DataSource;
 import java.io.PrintWriter;
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.sql.DriverPropertyInfo;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.Properties;
@@ -28,27 +27,33 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
-import javax.sql.DataSource;
-
-import org.apache.ibatis.io.Resources;
-
 /**
  * @author Clinton Begin
  * @author Eduardo Macarron
  */
 public class UnpooledDataSource implements DataSource {
 
+  // 驱动加载器
   private ClassLoader driverClassLoader;
+  // 驱动配置信息
   private Properties driverProperties;
+  // 已经注册的所有驱动
   private static Map<String, Driver> registeredDrivers = new ConcurrentHashMap<>();
 
+  // 数据库驱动
   private String driver;
+  // 数据源地址
   private String url;
+  // 数据源用户名
   private String username;
+  // 数据源密码
   private String password;
 
+  // 是否自动提交
   private Boolean autoCommit;
+  // 默认事务隔离级别
   private Integer defaultTransactionIsolationLevel;
+  // 最长等待时间。发出请求后，最长等待时间后如果数据库还没有回应，则认为失败
   private Integer defaultNetworkTimeout;
 
   static {
@@ -193,7 +198,7 @@ public class UnpooledDataSource implements DataSource {
 
   /**
    * Sets the default network timeout value to wait for the database operation to complete. See {@link Connection#setNetworkTimeout(java.util.concurrent.Executor, int)}
-   * 
+   *
    * @param defaultNetworkTimeout
    *          The time in milliseconds to wait for the database operation to complete.
    * @since 3.5.2
@@ -216,26 +221,48 @@ public class UnpooledDataSource implements DataSource {
     return doGetConnection(props);
   }
 
+  /**
+   * 建立数据库连接
+   *
+   * @author yangwenxin
+   * @date 2023-06-06 14:34
+   */
   private Connection doGetConnection(Properties properties) throws SQLException {
+    // 初始化驱动
     initializeDriver();
+    // 通过DriverManager获取连接
     Connection connection = DriverManager.getConnection(url, properties);
+    // 配置连接，要设置的属性有defaultNetworkTimeout、autoCommit、defaultTransactionIsolationLevel
     configureConnection(connection);
     return connection;
   }
 
+  /**
+   * 初始化数据库驱动
+   *
+   * @author yangwenxin
+   * @date 2023-06-06 14:37
+   */
   private synchronized void initializeDriver() throws SQLException {
+    // 如果所需的驱动尚未被注册到registeredDrivers
     if (!registeredDrivers.containsKey(driver)) {
       Class<?> driverType;
       try {
+        // 如果存在驱动类加载器
         if (driverClassLoader != null) {
+          // 优先使用驱动类加载器加载驱动类
           driverType = Class.forName(driver, true, driverClassLoader);
         } else {
+          // 使用Resources中的所有加载器加载驱动类
           driverType = Resources.classForName(driver);
         }
         // DriverManager requires the driver to be loaded via the system ClassLoader.
         // http://www.kfu.com/~nsayer/Java/dyn-jdbc.html
+        // 实例化驱动
         Driver driverInstance = (Driver)driverType.newInstance();
+        // 向DriverManager注册该驱动的代理
         DriverManager.registerDriver(new DriverProxy(driverInstance));
+        // 注册到registeredDrivers，表明该驱动已经加载
         registeredDrivers.put(driver, driverInstance);
       } catch (Exception e) {
         throw new SQLException("Error setting driver on UnpooledDataSource. Cause: " + e);

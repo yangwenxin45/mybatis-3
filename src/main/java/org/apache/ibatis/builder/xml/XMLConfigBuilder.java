@@ -327,11 +327,21 @@ public class XMLConfigBuilder extends BaseBuilder {
     throw new BuilderException("Environment declaration requires a TransactionFactory.");
   }
 
+  /**
+   * 解析配置信息，获取数据源工厂
+   *
+   * @author yangwenxin
+   * @date 2023-06-06 13:57
+   */
   private DataSourceFactory dataSourceElement(XNode context) throws Exception {
     if (context != null) {
+      // 通过这里的类型判断数据源类型，如POOLED、UNPOOLED、JNDI
       String type = context.getStringAttribute("type");
+      // 获取dataSource节点下配置的property
       Properties props = context.getChildrenAsProperties();
+      // 根据dataSource的type值获取相应的DataSourceFactory对象
       DataSourceFactory factory = (DataSourceFactory) resolveClass(type).newInstance();
+      // 设置DataSourceFactory对象的属性
       factory.setProperties(props);
       return factory;
     }
