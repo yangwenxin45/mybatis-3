@@ -341,7 +341,7 @@ public class PooledDataSource implements DataSource {
           // ignore
         }
       }
-      // 依次关闭所有的空闲连接s
+      // 依次关闭所有的空闲连接
       for (int i = state.idleConnections.size(); i > 0; i--) {
         try {
           PooledConnection conn = state.idleConnections.remove(i - 1);

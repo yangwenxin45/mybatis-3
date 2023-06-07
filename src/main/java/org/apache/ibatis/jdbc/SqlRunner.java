@@ -15,24 +15,17 @@
  */
 package org.apache.ibatis.jdbc;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.type.TypeHandler;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 
+import java.sql.*;
+import java.util.*;
+
 /**
+ * Mybatis提供的可以直接执行SQL语句的工具类
+ * 使用SqlRunner时如果参数为null，则需要引用枚举类型Null中的枚举值
+ *
  * @author Clinton Begin
  */
 public class SqlRunner {
@@ -70,6 +63,7 @@ public class SqlRunner {
 
   /**
    * Executes a SELECT statement that returns multiple rows.
+   * 执行返回多行的SELECT语句
    *
    * @param sql  The SQL
    * @param args The arguments to be set on the statement.
@@ -216,14 +210,25 @@ public class SqlRunner {
     }
   }
 
+  /**
+   * 负责将数据库操作返回的结果提取出来，用列表的形式返回
+   *
+   * @author yangwenxin
+   * @date 2023-06-07 09:50
+   */
   private List<Map<String, Object>> getResults(ResultSet rs) throws SQLException {
     try {
       List<Map<String, Object>> list = new ArrayList<>();
+      // 返回结果的字段名列表，按照字段顺序排列
       List<String> columns = new ArrayList<>();
+      // 返回结果的类型处理器列表，按照字段顺序排序
       List<TypeHandler<?>> typeHandlers = new ArrayList<>();
+      // 获取返回结果的表信息、字段信息等
       ResultSetMetaData rsmd = rs.getMetaData();
       for (int i = 0, n = rsmd.getColumnCount(); i < n; i++) {
+        // 记录字段名
         columns.add(rsmd.getColumnLabel(i + 1));
+        // 记录字段对应的类型处理器
         try {
           Class<?> type = Resources.classForName(rsmd.getColumnClassName(i + 1));
           TypeHandler<?> typeHandler = typeHandlerRegistry.getTypeHandler(type);
@@ -232,14 +237,19 @@ public class SqlRunner {
           }
           typeHandlers.add(typeHandler);
         } catch (Exception e) {
+          // 默认的类型处理器是Object处理器
           typeHandlers.add(typeHandlerRegistry.getTypeHandler(Object.class));
         }
       }
+      // 循环处理结果
       while (rs.next()) {
         Map<String, Object> row = new HashMap<>();
         for (int i = 0, n = columns.size(); i < n; i++) {
+          // 字段名
           String name = columns.get(i);
+          // 对应处理器
           TypeHandler<?> handler = typeHandlers.get(i);
+          // 放入结果中，key为字段名的大写，value为取出的结果值
           row.put(name.toUpperCase(Locale.ENGLISH), handler.getResult(rs, name));
         }
         list.add(row);

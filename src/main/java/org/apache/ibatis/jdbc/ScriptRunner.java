@@ -18,16 +18,13 @@ package org.apache.ibatis.jdbc;
 import java.io.BufferedReader;
 import java.io.PrintWriter;
 import java.io.Reader;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
+ * Mybatis提供的直接执行SQL脚本的工具类
+ *
  * @author Clinton Begin
  */
 public class ScriptRunner {
@@ -36,6 +33,7 @@ public class ScriptRunner {
 
   private static final String DEFAULT_DELIMITER = ";";
 
+  // 用于匹配SQL脚本文件中的分隔符
   private static final Pattern DELIMITER_PATTERN = Pattern.compile("^\\s*((--)|(//))?\\s*(//)?\\s*@DELIMITER\\s+([^\\s]+)", Pattern.CASE_INSENSITIVE);
 
   private final Connection connection;
@@ -44,13 +42,16 @@ public class ScriptRunner {
   private boolean throwWarning;
   private boolean autoCommit;
   private boolean sendFullScript;
+  // 表示是否在执行脚本时从输入中删除回车符(\r)
   private boolean removeCRs;
+  // 表示是否启用SQL转义处理
   private boolean escapeProcessing = true;
 
   private PrintWriter logWriter = new PrintWriter(System.out);
   private PrintWriter errorLogWriter = new PrintWriter(System.err);
 
   private String delimiter = DEFAULT_DELIMITER;
+  // 表示是否使用完整行作为SQL语句的分隔符
   private boolean fullLineDelimiter;
 
   public ScriptRunner(Connection connection) {
@@ -100,13 +101,22 @@ public class ScriptRunner {
     this.fullLineDelimiter = fullLineDelimiter;
   }
 
+  /**
+   * 执行脚本
+   *
+   * @author yangwenxin
+   * @date 2023-06-07 09:58
+   */
   public void runScript(Reader reader) {
+    // 设置为自动提交
     setAutoCommit();
 
     try {
       if (sendFullScript) {
+        // 全脚本执行
         executeFullScript(reader);
       } else {
+        // 逐行执行
         executeLineByLine(reader);
       }
     } finally {
@@ -114,18 +124,29 @@ public class ScriptRunner {
     }
   }
 
+  /**
+   * 全脚本执行
+   *
+   * @author yangwenxin
+   * @date 2023-06-07 09:59
+   */
   private void executeFullScript(Reader reader) {
+    // 脚本全文
     StringBuilder script = new StringBuilder();
     try {
       BufferedReader lineReader = new BufferedReader(reader);
       String line;
+      // 逐行读入脚本全文
       while ((line = lineReader.readLine()) != null) {
         script.append(line);
         script.append(LINE_SEPARATOR);
       }
+      // 拼接为一条命令
       String command = script.toString();
       println(command);
+      // 执行命令
       executeStatement(command);
+      // 如果没有启用自动提交，则进行提交操作
       commitConnection();
     } catch (Exception e) {
       String message = "Error executing: " + script + ".  Cause: " + e;
@@ -197,12 +218,14 @@ public class ScriptRunner {
 
   private void handleLine(StringBuilder command, String line) throws SQLException {
     String trimmedLine = line.trim();
+    // 判断是否为注释
     if (lineIsComment(trimmedLine)) {
       Matcher matcher = DELIMITER_PATTERN.matcher(trimmedLine);
       if (matcher.find()) {
         delimiter = matcher.group(5);
       }
       println(trimmedLine);
+      // 判断当前已经拼接的SQL语句是否可以执行
     } else if (commandReadyToExecute(trimmedLine)) {
       command.append(line.substring(0, line.lastIndexOf(delimiter)));
       command.append(LINE_SEPARATOR);
@@ -221,6 +244,7 @@ public class ScriptRunner {
 
   private boolean commandReadyToExecute(String trimmedLine) {
     // issue #561 remove anything after the delimiter
+    // 如果 fullLineDelimiter 为 false，则使用 delimiter 字符串作为 SQL 语句的分隔符；如果 fullLineDelimiter 为 true，则使用整行作为 SQL 语句的分隔符
     return !fullLineDelimiter && trimmedLine.contains(delimiter) || fullLineDelimiter && trimmedLine.equals(delimiter);
   }
 
@@ -234,6 +258,8 @@ public class ScriptRunner {
       }
       try {
         boolean hasResults = statement.execute(sql);
+        // 循环直到hasResults为false且statement.getUpdateCount()返回-1时循环结束
+        // 更新计数器的值为-1，说明当前SQL语句没有更新语句
         while (!(!hasResults && statement.getUpdateCount() == -1)) {
           checkWarnings(statement);
           printResults(statement, hasResults);

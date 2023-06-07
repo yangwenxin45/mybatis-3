@@ -33,6 +33,12 @@ public abstract class AbstractSQL<T> {
 
   private final SQLStatement sql = new SQLStatement();
 
+  /**
+   * 将AbstractSQL作为抽象方法独立出来，使得我们可以继承AbstractSQL实现其他的子类，保证了AbstractSQL类更容易扩展
+   *
+   * @author yangwenxin
+   * @date 2023-06-07 09:42
+   */
   public abstract T getSelf();
 
   public T UPDATE(String table) {
@@ -395,8 +401,16 @@ public abstract class AbstractSQL<T> {
     return sb.toString();
   }
 
+  /**
+   * 拼接器，实现串的拼接功能
+   *
+   * @author yangwenxin
+   * @date 2023-06-07 09:24
+   */
   private static class SafeAppendable {
+    // 主串
     private final Appendable a;
+    // 主串是否为空
     private boolean empty = true;
 
     public SafeAppendable(Appendable a) {
@@ -406,6 +420,7 @@ public abstract class AbstractSQL<T> {
 
     public SafeAppendable append(CharSequence s) {
       try {
+        // 要拼接的串长度不为零，则拼完后主串也不是空了
         if (empty && s.length() > 0) {
           empty = false;
         }
@@ -422,6 +437,12 @@ public abstract class AbstractSQL<T> {
 
   }
 
+  /**
+   * 完整地表述出一条SQL语句
+   *
+   * @author yangwenxin
+   * @date 2023-06-07 09:27
+   */
   private static class SQLStatement {
 
     public enum StatementType {
@@ -462,7 +483,9 @@ public abstract class AbstractSQL<T> {
 
     }
 
+    // 当前语句的语句类型
     StatementType statementType;
+    // 语句片段信息
     List<String> sets = new ArrayList<>();
     List<String> select = new ArrayList<>();
     List<String> tables = new ArrayList<>();
@@ -478,9 +501,13 @@ public abstract class AbstractSQL<T> {
     List<String> lastList = new ArrayList<>();
     List<String> columns = new ArrayList<>();
     List<List<String>> valuesList = new ArrayList<>();
+    // 表名是否去重，该字段仅对于select操作有效，决定是select还是select distinct
     boolean distinct;
+    // 结果偏移量
     String offset;
+    // 结果总数约束
     String limit;
+    // 结果约束策略
     LimitingRowsStrategy limitingRowsStrategy = LimitingRowsStrategy.NOP;
 
     public SQLStatement() {
@@ -510,6 +537,12 @@ public abstract class AbstractSQL<T> {
       }
     }
 
+    /**
+     * 将SQL语句片段拼接为一个完整地SELECT语句
+     *
+     * @author yangwenxin
+     * @date 2023-06-07 09:34
+     */
     private String selectSQL(SafeAppendable builder) {
       if (distinct) {
         sqlClause(builder, "SELECT DISTINCT", select, "", "", ", ");
@@ -518,6 +551,7 @@ public abstract class AbstractSQL<T> {
       }
 
       sqlClause(builder, "FROM", tables, "", "", ", ");
+      // JOIN操作相对复杂，调用单独的joins子方法进行操作
       joins(builder);
       sqlClause(builder, "WHERE", where, "(", ")", " AND ");
       sqlClause(builder, "GROUP BY", groupBy, "", "", ", ");
@@ -535,6 +569,12 @@ public abstract class AbstractSQL<T> {
       sqlClause(builder, "RIGHT OUTER JOIN", rightOuterJoin, "", "", "\nRIGHT OUTER JOIN ");
     }
 
+    /**
+     * 将SQL语句片段拼接为一个完整的INSERT语句
+     *
+     * @author yangwenxin
+     * @date 2023-06-07 09:39
+     */
     private String insertSQL(SafeAppendable builder) {
       sqlClause(builder, "INSERT INTO", tables, "", "", "");
       sqlClause(builder, "", columns, "(", ")", ", ");
@@ -560,6 +600,12 @@ public abstract class AbstractSQL<T> {
       return builder.toString();
     }
 
+    /**
+     * 根据语句类型，调用不同的语句拼接器拼接SQL语句
+     *
+     * @param a 起始字符串
+     * @return 拼接完成后的结果
+     */
     public String sql(Appendable a) {
       SafeAppendable builder = new SafeAppendable(a);
       if (statementType == null) {

@@ -15,5 +15,6 @@
  */
 /**
  * Utilities for JDBC.
+ * 该包提供了数据库操作语句的执行能力和脚本运行能力
  */
 package org.apache.ibatis.jdbc;
