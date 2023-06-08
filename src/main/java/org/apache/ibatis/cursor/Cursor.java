@@ -22,24 +22,29 @@ import java.io.Closeable;
  * Cursors are a perfect fit to handle millions of items queries that would not normally fits in memory.
  * If you use collections in resultMaps then cursor SQL queries must be ordered (resultOrdered="true")
  * using the id columns of the resultMap.
+ * Closeable接口表征一个类是可以关闭的，调用Closeable接口中的close方法可释放类的对象持有的资源
+ * Iterable接口表征一个类是可以迭代的，这样可以对该类的对象使用for-each操作
  *
  * @author Guillaume Darmont / guillaume@dropinocean.com
  */
 public interface Cursor<T> extends Closeable, Iterable<T> {
 
   /**
+   * 游标是否开启
+   *
    * @return true if the cursor has started to fetch items from database.
    */
   boolean isOpen();
 
   /**
-   *
+   * 是否已经完成了所有遍历
    * @return true if the cursor is fully consumed and has returned all elements matching the query.
    */
   boolean isConsumed();
 
   /**
    * Get the current item index. The first item has the index 0.
+   * 返回当前元素的索引
    * @return -1 if the first cursor item has not been retrieved. The index of the current item retrieved.
    */
   int getCurrentIndex();
