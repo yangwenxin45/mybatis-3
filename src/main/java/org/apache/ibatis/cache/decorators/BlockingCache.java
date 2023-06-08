@@ -15,28 +15,33 @@
  */
 package org.apache.ibatis.cache.decorators;
 
+import org.apache.ibatis.cache.Cache;
+import org.apache.ibatis.cache.CacheException;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.ibatis.cache.Cache;
-import org.apache.ibatis.cache.CacheException;
-
 /**
  * Simple blocking decorator
- *
+ * <p>
  * Simple and inefficient version of EhCache's BlockingCache decorator.
  * It sets a lock over a cache key when the element is not found in cache.
  * This way, other threads will wait until this element is filled instead of hitting the database.
+ * <p>
+ * 阻塞装饰器：为缓存增加阻塞功能
+ * 在使用阻塞装饰器装饰缓存后，缓存在收到多条相同的查询请求时会暂时阻塞住后面的查询，等待数据库结果返回时将所有的请求一并返回
  *
  * @author Eduardo Macarron
- *
  */
 public class BlockingCache implements Cache {
 
+  // 获取锁时的运行等待时间
   private long timeout;
+  // 被装饰对象
   private final Cache delegate;
+  // 锁的映射表。键为缓存记录的键，值为对应的锁
   private final ConcurrentHashMap<Object, ReentrantLock> locks;
 
   public BlockingCache(Cache delegate) {
@@ -59,6 +64,7 @@ public class BlockingCache implements Cache {
     try {
       delegate.putObject(key, value);
     } finally {
+      // 因为已经放入了数据，因此释放锁
       releaseLock(key);
     }
   }
@@ -70,6 +76,7 @@ public class BlockingCache implements Cache {
     if (value != null) {
       releaseLock(key);
     }
+    // 如果缓存中没有读到结果，则不会释放锁。对应的锁会在从数据库读取了结果并写入缓存后，在putObject中释放
     return value;
   }
 
@@ -86,25 +93,40 @@ public class BlockingCache implements Cache {
   }
 
   private ReentrantLock getLockForKey(Object key) {
+    // 获取key对应的ReentrantLock对象，如果不存在则新建
     return locks.computeIfAbsent(key, k -> new ReentrantLock());
   }
 
+  /**
+   * 获取某个键的锁
+   *
+   * @author yangwenxin
+   * @date 2023-06-07 14:50
+   */
   private void acquireLock(Object key) {
+    // 找出指定对象的锁
     Lock lock = getLockForKey(key);
     if (timeout > 0) {
       try {
         boolean acquired = lock.tryLock(timeout, TimeUnit.MILLISECONDS);
         if (!acquired) {
-          throw new CacheException("Couldn't get a lock in " + timeout + " for the key " +  key + " at the cache " + delegate.getId());
+          throw new CacheException("Couldn't get a lock in " + timeout + " for the key " + key + " at the cache " + delegate.getId());
         }
       } catch (InterruptedException e) {
         throw new CacheException("Got interrupted while trying to acquire lock for key " + key, e);
       }
     } else {
+      // 锁住
       lock.lock();
     }
   }
 
+  /**
+   * 释放某个对象的锁
+   *
+   * @author yangwenxin
+   * @date 2023-06-07 14:52
+   */
   private void releaseLock(Object key) {
     ReentrantLock lock = locks.get(key);
     if (lock.isHeldByCurrentThread()) {

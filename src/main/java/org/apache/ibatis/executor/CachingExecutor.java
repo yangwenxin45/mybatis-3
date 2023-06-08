@@ -15,30 +15,34 @@
  */
 package org.apache.ibatis.executor;
 
-import java.sql.SQLException;
-import java.util.List;
-
 import org.apache.ibatis.cache.Cache;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.cache.TransactionalCacheManager;
 import org.apache.ibatis.cursor.Cursor;
-import org.apache.ibatis.mapping.BoundSql;
-import org.apache.ibatis.mapping.MappedStatement;
-import org.apache.ibatis.mapping.ParameterMapping;
-import org.apache.ibatis.mapping.ParameterMode;
-import org.apache.ibatis.mapping.StatementType;
+import org.apache.ibatis.mapping.*;
 import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.transaction.Transaction;
 
+import java.sql.SQLException;
+import java.util.List;
+
 /**
+ * 实现二级缓存功能
+ * 作用范围可选：
+ * 1. 一个映射文件内
+ * 2. 多个映射文件内
+ *
  * @author Clinton Begin
  * @author Eduardo Macarron
  */
 public class CachingExecutor implements Executor {
 
+  // 被装饰的执行器
   private final Executor delegate;
+  // 事务缓存管理器
+  // 一条语句也是一个事务，因此事务管理器可以应用在有事务的场景，也可以应用在无事务的场景
   private final TransactionalCacheManager tcm = new TransactionalCacheManager();
 
   public CachingExecutor(Executor delegate) {
@@ -89,23 +93,45 @@ public class CachingExecutor implements Executor {
     return delegate.queryCursor(ms, parameter, rowBounds);
   }
 
+  /**
+   * 查询数据库中的数据
+   *
+   * @param ms              映射语句
+   * @param parameterObject 参数对象
+   * @param rowBounds       翻页限制条件
+   * @param resultHandler   结果处理器
+   * @param key             缓存的键
+   * @param boundSql        查询语句
+   * @param <E>             结果类型
+   * @return 结果列表
+   * @throws SQLException
+   */
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)
-      throws SQLException {
+    throws SQLException {
+    // 获取MappedStatement对应的缓存，可能的结果有：该命名空间的缓存、共享的其他命名空间的缓存、无缓存
     Cache cache = ms.getCache();
+    // 如果映射文件未设置<cache>或<cache-ref>，则此处cache变量为null
     if (cache != null) {
+      // 根据要求判断语句执行前是否要清除二级缓存，如果需要，则清除二级缓存
       flushCacheIfRequired(ms);
+      // 该语句使用缓存且没有输出结果处理器
       if (ms.isUseCache() && resultHandler == null) {
+        // 二级缓存不支持输出参数的CALLABLE语句，故在这里进行判断
         ensureNoOutParams(ms, boundSql);
+        // 从缓存中取出结果
         @SuppressWarnings("unchecked")
         List<E> list = (List<E>) tcm.getObject(cache, key);
         if (list == null) {
+          // 缓存中没有结果，交给被包装的执行器执行
           list = delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
+          // 缓存被包装执行器返回的结果
           tcm.putObject(cache, key, list); // issue #578 and #116
         }
         return list;
       }
     }
+    // 交由被包装的实际执行器执行
     return delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
   }
 
@@ -161,9 +187,19 @@ public class CachingExecutor implements Executor {
     delegate.clearLocalCache();
   }
 
+  /**
+   * 根据要求判断语句执行前是否要清除二级缓存，如果需要，则清除二级缓存
+   * 注意：默认情况下，非SELECT语句的isFlushCacheRequired方法会返回true
+   *
+   * @author yangwenxin
+   * @date 2023-06-08 10:37
+   */
   private void flushCacheIfRequired(MappedStatement ms) {
+    // 获取MappedStatement对应的缓存
     Cache cache = ms.getCache();
+    // 存在缓存且该操作语句要求执行前清除缓存
     if (cache != null && ms.isFlushCacheRequired()) {
+      // 清除事务中的缓存
       tcm.clear(cache);
     }
   }

@@ -15,5 +15,7 @@
  */
 /**
  * Base package for caching stuff
+ * cache包Mybatis缓存能力的提供者
+ * cache包只提供了缓存能力，不涉及具体缓存功能的使用
  */
 package org.apache.ibatis.cache;

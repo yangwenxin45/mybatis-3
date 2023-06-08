@@ -31,6 +31,7 @@ import java.util.Properties;
 
 /**
  * 缓存建造者，负责完成缓存对象的创建
+ * 组件缓存的过程就是根据需求为缓存的基本实现增加各种装饰的过程
  *
  * @author Clinton Begin
  */
@@ -86,23 +87,45 @@ public class CacheBuilder {
     return this;
   }
 
+  /**
+   * 组件缓存
+   *
+   * @author yangwenxin
+   * @date 2023-06-07 15:11
+   */
   public Cache build() {
+    // 设置缓存的默认实现，默认装饰器
     setDefaultImplementations();
+    // 创建默认的缓存
     Cache cache = newBaseCacheInstance(implementation, id);
+    // 设置缓存的属性
     setCacheProperties(cache);
     // issue #352, do not apply decorators to custom caches
+    // 缓存的实现类是PerpetualCache，不是用户自定义的缓存实现类
     if (PerpetualCache.class.equals(cache.getClass())) {
+      // 为缓存逐级嵌套自定义的装饰器
       for (Class<? extends Cache> decorator : decorators) {
+        // 应用用户自定义的缓存装饰器
         cache = newCacheDecoratorInstance(decorator, cache);
+        // 为装饰器设置属性
         setCacheProperties(cache);
       }
+      // 为缓存增加标准的装饰器
       cache = setStandardDecorators(cache);
     } else if (!LoggingCache.class.isAssignableFrom(cache.getClass())) {
+      // 增加日志装饰器
       cache = new LoggingCache(cache);
     }
+    // 返回被包装好的缓存
     return cache;
   }
 
+  /**
+   * 设置缓存的默认实现类和默认装饰器
+   *
+   * @author yangwenxin
+   * @date 2023-06-07 15:11
+   */
   private void setDefaultImplementations() {
     if (implementation == null) {
       implementation = PerpetualCache.class;
@@ -112,24 +135,37 @@ public class CacheBuilder {
     }
   }
 
+  /**
+   * 为缓存增加标准的装饰器
+   *
+   * @author yangwenxin
+   * @date 2023-06-08 09:33
+   */
   private Cache setStandardDecorators(Cache cache) {
     try {
       MetaObject metaCache = SystemMetaObject.forObject(cache);
+      // 设置缓存大小
       if (size != null && metaCache.hasSetter("size")) {
         metaCache.setValue("size", size);
       }
+      // 如果定义了清理间隔，则使用定时清理装饰器装饰缓存
       if (clearInterval != null) {
         cache = new ScheduledCache(cache);
         ((ScheduledCache) cache).setClearInterval(clearInterval);
       }
+      // 如果允许读写，则使用序列化装饰器装饰缓存
       if (readWrite) {
         cache = new SerializedCache(cache);
       }
+      // 使用日志装饰器装饰缓存
       cache = new LoggingCache(cache);
+      // 使用同步装饰器装饰缓存
       cache = new SynchronizedCache(cache);
+      // 如果启用了阻塞功能，则使用阻塞装饰器装饰缓存
       if (blocking) {
         cache = new BlockingCache(cache);
       }
+      // 返回被层层装饰的缓存
       return cache;
     } catch (Exception e) {
       throw new CacheException("Error building standard cache decorators.  Cause: " + e, e);

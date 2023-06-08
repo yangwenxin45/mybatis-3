@@ -15,14 +15,16 @@
  */
 package org.apache.ibatis.cache;
 
+import org.apache.ibatis.reflection.ArrayUtil;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
 
-import org.apache.ibatis.reflection.ArrayUtil;
-
 /**
+ * 缓存键
+ *
  * @author Clinton Begin
  */
 public class CacheKey implements Cloneable, Serializable {
@@ -34,11 +36,16 @@ public class CacheKey implements Cloneable, Serializable {
   private static final int DEFAULT_MULTIPLYER = 37;
   private static final int DEFAULT_HASHCODE = 17;
 
+  // 乘数，用来计算hashcode时使用
   private final int multiplier;
+  // 哈希值，整个CacheKey的哈希值。如果两个CacheKey的该值不同，则两个CacheKey一定不同
   private int hashcode;
+  // 求和校验值，整个CacheKey的求和校验值。如果两个CacheKey的该值不同，则两个CacheKey一定不同
   private long checksum;
+  // 更新次数
   private int count;
   // 8/21/2017 - Sonarlint flags this as needing to be marked transient.  While true if content is not serializable, this is not always true and thus should not be marked transient.
+  // 更新历史
   private List<Object> updateList;
 
   public CacheKey() {
@@ -57,6 +64,12 @@ public class CacheKey implements Cloneable, Serializable {
     return updateList.size();
   }
 
+  /**
+   * 更新CacheKey，每次更新都会引发count、checksum、hashcode值得变化，并把更新值放入updateList
+   *
+   * @author yangwenxin
+   * @date 2023-06-07 11:48
+   */
   public void update(Object object) {
     int baseHashCode = object == null ? 1 : ArrayUtil.hashCode(object);
 
@@ -75,17 +88,26 @@ public class CacheKey implements Cloneable, Serializable {
     }
   }
 
+  /**
+   * 比较当前对象和输入参数对象是否相等
+   *
+   * @author yangwenxin
+   * @date 2023-06-07 11:49
+   */
   @Override
   public boolean equals(Object object) {
+    // 如果地址一样，是一个对象，则肯定相等
     if (this == object) {
       return true;
     }
+    // 如果输入参数不是CacheKey对象，则肯定不相等
     if (!(object instanceof CacheKey)) {
       return false;
     }
 
     final CacheKey cacheKey = (CacheKey) object;
 
+    // 依次通过hashcode、checksum、count判断，必须完全一致才相等
     if (hashcode != cacheKey.hashcode) {
       return false;
     }
@@ -96,6 +118,7 @@ public class CacheKey implements Cloneable, Serializable {
       return false;
     }
 
+    // 详细比较变更历史中的每次变更
     for (int i = 0; i < updateList.size(); i++) {
       Object thisObject = updateList.get(i);
       Object thatObject = cacheKey.updateList.get(i);

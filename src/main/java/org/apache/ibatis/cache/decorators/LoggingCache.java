@@ -20,6 +20,9 @@ import org.apache.ibatis.logging.Log;
 import org.apache.ibatis.logging.LogFactory;
 
 /**
+ * 日志装饰器：为缓存增加日志统计功能，而需要统计的数据主要是缓存命中率
+ * 所谓命中率是指多次访问缓存的过程中，能够在缓存中查询到数据的比率
+ *
  * @author Clinton Begin
  */
 public class LoggingCache implements Cache {
@@ -49,11 +52,20 @@ public class LoggingCache implements Cache {
     delegate.putObject(key, object);
   }
 
+  /**
+   * 从缓存中读取一条信息
+   *
+   * @author yangwenxin
+   * @date 2023-06-07 13:53
+   */
   @Override
   public Object getObject(Object key) {
+    // 请求缓存次数+1
     requests++;
     final Object value = delegate.getObject(key);
+    // 命中缓存
     if (value != null) {
+      // 命中缓存次数+1
       hits++;
     }
     if (log.isDebugEnabled()) {

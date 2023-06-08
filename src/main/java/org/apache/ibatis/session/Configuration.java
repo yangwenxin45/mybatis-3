@@ -594,10 +594,17 @@ public class Configuration {
     return newExecutor(transaction, defaultExecutorType);
   }
 
+  /**
+   * 创建一个执行器
+   *
+   * @author yangwenxin
+   * @date 2023-06-08 10:28
+   */
   public Executor newExecutor(Transaction transaction, ExecutorType executorType) {
     executorType = executorType == null ? defaultExecutorType : executorType;
     executorType = executorType == null ? ExecutorType.SIMPLE : executorType;
     Executor executor;
+    // 根据数据库操作类型创建实际执行器
     if (ExecutorType.BATCH == executorType) {
       executor = new BatchExecutor(this, transaction);
     } else if (ExecutorType.REUSE == executorType) {
@@ -605,9 +612,11 @@ public class Configuration {
     } else {
       executor = new SimpleExecutor(this, transaction);
     }
+    // 根据配置文件中settings节点cacheEnabled配置项确定是否启用缓存
     if (cacheEnabled) {
       executor = new CachingExecutor(executor);
     }
+    // 为执行器增加拦截器（插件），以启用各个拦截器的功能
     executor = (Executor) interceptorChain.pluginAll(executor);
     return executor;
   }

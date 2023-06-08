@@ -18,12 +18,19 @@ package org.apache.ibatis.cache.decorators;
 import org.apache.ibatis.cache.Cache;
 
 /**
+ * 定时清理装饰器：为缓存增加定时清理功能
+ * ScheduleCache提供的定时清理功能并非是实时的
+ * 也就是说，即使已经满足了清理时间间隔的要求，只要getSize、putObject、getObject、removeObject这四个方法没有被调用，
+ * 则clearWhenStale方法也不会被触发，也就不会发生缓存清理操作
+ *
  * @author Clinton Begin
  */
 public class ScheduledCache implements Cache {
 
   private final Cache delegate;
+  // 清理的时间间隔
   protected long clearInterval;
+  // 上次清理的时刻
   protected long lastClear;
 
   public ScheduledCache(Cache delegate) {

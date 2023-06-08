@@ -15,20 +15,17 @@
  */
 package org.apache.ibatis.cache.decorators;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.ObjectStreamClass;
-import java.io.Serializable;
-
 import org.apache.ibatis.cache.Cache;
 import org.apache.ibatis.cache.CacheException;
 import org.apache.ibatis.io.Resources;
 
+import java.io.*;
+
 /**
+ * 序列化装饰器：为缓存增加序列化功能
+ * 在使用SerializedCache后，每次向缓存中写入对象时，实际写入的是对象的序列化串；而每次读取对象时，会将序列化串反序列化后再返回
+ * 通过序列化和反序列化的过程保证了每一次缓存给出的对象都是一个全新的对象
+ *
  * @author Clinton Begin
  */
 public class SerializedCache implements Cache {
@@ -51,6 +48,7 @@ public class SerializedCache implements Cache {
 
   @Override
   public void putObject(Object key, Object object) {
+    // 要缓存的数据必须是可以序列化的
     if (object == null || object instanceof Serializable) {
       delegate.putObject(key, serialize((Serializable) object));
     } else {
@@ -61,6 +59,7 @@ public class SerializedCache implements Cache {
   @Override
   public Object getObject(Object key) {
     Object object = delegate.getObject(key);
+    // 反序列化后返回
     return object == null ? null : deserialize((byte[]) object);
   }
 

@@ -16,6 +16,9 @@
 package org.apache.ibatis.cache;
 
 /**
+ * 空键使用
+ * 在缓存查询中，如果发现某个CacheKey信息不全，则会返回NullCacheKey对象，类似于返回一个null值
+ *
  * @author Clinton Begin
  */
 public final class NullCacheKey extends CacheKey {
