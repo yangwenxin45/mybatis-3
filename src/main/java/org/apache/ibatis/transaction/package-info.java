@@ -15,5 +15,6 @@
  */
 /**
  * Base package for transactions.
+ * transaction包是负责事务管理的包
  */
 package org.apache.ibatis.transaction;
