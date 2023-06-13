@@ -18,6 +18,9 @@ package org.apache.ibatis.session;
 import java.sql.Connection;
 
 /**
+ * 表示事务隔离级别
+ * 可选项有无隔离、读已提交、读未提交和支持批量操作的执行器
+ *
  * @author Clinton Begin
  */
 public enum TransactionIsolationLevel {

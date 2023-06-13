@@ -16,6 +16,9 @@
 package org.apache.ibatis.session;
 
 /**
+ * 表示执行器的类型
+ * 可选项有每次都新建的简单执行器、支持复用的执行器和支持批量操作的执行器
+ *
  * @author Clinton Begin
  */
 public enum ExecutorType {

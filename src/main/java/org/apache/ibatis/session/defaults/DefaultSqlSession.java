@@ -15,15 +15,6 @@
  */
 package org.apache.ibatis.session.defaults;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.ibatis.binding.BindingException;
 import org.apache.ibatis.cursor.Cursor;
 import org.apache.ibatis.exceptions.ExceptionFactory;
@@ -39,19 +30,30 @@ import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.session.SqlSession;
 
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.*;
+
 /**
  * The default implementation for {@link SqlSession}.
  * Note that this class is not Thread-Safe.
+ * 负责把接口包的工作交给执行器包处理
  *
  * @author Clinton Begin
  */
 public class DefaultSqlSession implements SqlSession {
 
+  // 配置信息
   private final Configuration configuration;
+  // 执行器
   private final Executor executor;
 
+  // 是否自动提交
   private final boolean autoCommit;
+  // 缓存是否已经被污染
   private boolean dirty;
+  // 游标列表
   private List<Cursor<?>> cursorList;
 
   public DefaultSqlSession(Configuration configuration, Executor executor, boolean autoCommit) {
@@ -140,10 +142,21 @@ public class DefaultSqlSession implements SqlSession {
     return this.selectList(statement, parameter, RowBounds.DEFAULT);
   }
 
+  /**
+   * 查询结果列表
+   *
+   * @param statement Unique identifier matching the statement to use.  SQL语句
+   * @param parameter A parameter object to pass to the statement.  参数对象
+   * @param rowBounds Bounds to limit object retrieval 翻页限制条件
+   * @param <E>
+   * @return
+   */
   @Override
   public <E> List<E> selectList(String statement, Object parameter, RowBounds rowBounds) {
     try {
+      // 获取查询语句
       MappedStatement ms = configuration.getMappedStatement(statement);
+      // 交由执行器进行查询
       return executor.query(ms, wrapCollection(parameter), rowBounds, Executor.NO_RESULT_HANDLER);
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error querying database.  Cause: " + e, e);

@@ -20,10 +20,12 @@ import org.apache.ibatis.logging.LogFactory;
 import org.apache.ibatis.mapping.MappedStatement;
 
 /**
+ * 表示自动映射中遇到一些未知的字段该如何处理
+ * 可选项有不处理、输出报警日志和抛出异常
  * Specify the behavior when detects an unknown column (or unknown property type) of automatic mapping target.
  *
- * @since 3.4.0
  * @author Kazuki Shimizu
+ * @since 3.4.0
  */
 public enum AutoMappingUnknownColumnBehavior {
 

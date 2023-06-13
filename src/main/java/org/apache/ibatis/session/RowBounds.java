@@ -16,6 +16,9 @@
 package org.apache.ibatis.session;
 
 /**
+ * 表示查询结果分页设置，即表明查询结果的起始位置和条数限制
+ * 属于内存分页，即Mybatis会向数据库查出所有的数据，然后在内存中略过一些数据后在进行读取
+ *
  * @author Clinton Begin
  */
 public class RowBounds {
@@ -24,7 +27,9 @@ public class RowBounds {
   public static final int NO_ROW_LIMIT = Integer.MAX_VALUE;
   public static final RowBounds DEFAULT = new RowBounds();
 
+  // 起始位置，即略过前面的offset条之后才开始读取结果
   private final int offset;
+  // 总长度限制，即读取的结果总数不能超过limit条
   private final int limit;
 
   public RowBounds() {

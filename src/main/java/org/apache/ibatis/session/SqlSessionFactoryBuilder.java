@@ -15,17 +15,18 @@
  */
 package org.apache.ibatis.session;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.util.Properties;
-
 import org.apache.ibatis.builder.xml.XMLConfigBuilder;
 import org.apache.ibatis.exceptions.ExceptionFactory;
 import org.apache.ibatis.executor.ErrorContext;
 import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.util.Properties;
+
 /**
+ * SqlSessionFactoryBuilder是SqlSessionFactory的建造者类，它能够根据配置文件创建出SqlSessionFactory对象
  * Builds {@link SqlSession} instances.
  *
  * @author Clinton Begin
@@ -44,9 +45,21 @@ public class SqlSessionFactoryBuilder {
     return build(reader, null, properties);
   }
 
+  /**
+   * 建造一个SqlSessionFactory对象
+   *
+   * @param reader      读取字符流的抽象类
+   * @param environment 环境信息
+   * @param properties  配置信息
+   * @return
+   */
   public SqlSessionFactory build(Reader reader, String environment, Properties properties) {
     try {
+      // 传入配置文件，创建一个XMLConfigBuilder类
       XMLConfigBuilder parser = new XMLConfigBuilder(reader, environment, properties);
+      // 分两步：
+      // 1. 解析配置文件，得到配置文件对应的Configuration对象
+      // 2. 根据Configuration对象，获得一个DefaultSqlSessionFactory
       return build(parser.parse());
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error building SqlSession.", e);
@@ -88,6 +101,12 @@ public class SqlSessionFactoryBuilder {
     }
   }
 
+  /**
+   * 根据配置信息建造一个SqlSessionFactory对象
+   *
+   * @author yangwenxin
+   * @date 2023-06-13 17:03
+   */
   public SqlSessionFactory build(Configuration config) {
     return new DefaultSqlSessionFactory(config);
   }

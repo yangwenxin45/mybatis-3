@@ -15,6 +15,10 @@
  */
 package org.apache.ibatis.session;
 
+import org.apache.ibatis.cursor.Cursor;
+import org.apache.ibatis.executor.BatchResult;
+import org.apache.ibatis.reflection.ExceptionUtil;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.lang.reflect.InvocationHandler;
@@ -25,25 +29,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.ibatis.cursor.Cursor;
-import org.apache.ibatis.executor.BatchResult;
-import org.apache.ibatis.reflection.ExceptionUtil;
-
 /**
  * @author Larry Meadors
  */
 public class SqlSessionManager implements SqlSessionFactory, SqlSession {
 
+  // 构造方法中传入的SqlSessionFactory对象
   private final SqlSessionFactory sqlSessionFactory;
+  // SqlSession的代理对象
+  // 该代理对象可以拦截被代理对象的方法，拦截到的方法交给SqlSessionInterceptor内部类的invoke方法进行处理
   private final SqlSession sqlSessionProxy;
 
+  // 该变量存储被代理的SqlSession对象
   private final ThreadLocal<SqlSession> localSqlSession = new ThreadLocal<>();
 
   private SqlSessionManager(SqlSessionFactory sqlSessionFactory) {
     this.sqlSessionFactory = sqlSessionFactory;
     this.sqlSessionProxy = (SqlSession) Proxy.newProxyInstance(
-        SqlSessionFactory.class.getClassLoader(),
-        new Class[]{SqlSession.class},
+      SqlSessionFactory.class.getClassLoader(),
+      new Class[]{SqlSession.class},
         new SqlSessionInterceptor());
   }
 
@@ -344,16 +348,20 @@ public class SqlSessionManager implements SqlSessionFactory, SqlSession {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+      // 尝试从当前线程中取出SqlSession对象
       final SqlSession sqlSession = SqlSessionManager.this.localSqlSession.get();
-      if (sqlSession != null) {
+      if (sqlSession != null) { // 当前线程中确实取出了SqlSession对象
         try {
+          // 使用取出的SqlSession对象进行操作
           return method.invoke(sqlSession, args);
         } catch (Throwable t) {
           throw ExceptionUtil.unwrapThrowable(t);
         }
-      } else {
+      } else {  // 当前线程中还没有SqlSession对象
+        // 使用属性中的SqlSessionFactory对象创建一个SqlSession对象
         try (SqlSession autoSqlSession = openSession()) {
           try {
+            // 使用新创建的SqlSession对象进行操作
             final Object result = method.invoke(autoSqlSession, args);
             autoSqlSession.commit();
             return result;

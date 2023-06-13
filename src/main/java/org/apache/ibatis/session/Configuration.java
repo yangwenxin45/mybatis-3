@@ -77,12 +77,16 @@ import java.util.*;
 import java.util.function.BiFunction;
 
 /**
+ * 包含了Mybatis运行的所有配置信息，即mybatis-config.xml的configuration节点的信息
+ *
  * @author Clinton Begin
  */
 public class Configuration {
 
+  // <environment>节点的信息
   protected Environment environment;
 
+  // 以下为<settings>节点中的配置信息
   protected boolean safeRowBoundsEnabled;
   protected boolean safeResultHandlerEnabled = true;
   protected boolean mapUnderscoreToCamelCase;
@@ -108,14 +112,21 @@ public class Configuration {
   protected AutoMappingBehavior autoMappingBehavior = AutoMappingBehavior.PARTIAL;
   protected AutoMappingUnknownColumnBehavior autoMappingUnknownColumnBehavior = AutoMappingUnknownColumnBehavior.NONE;
 
+  // <properties>节点信息
   protected Properties variables = new Properties();
+  // 反射工厂
   protected ReflectorFactory reflectorFactory = new DefaultReflectorFactory();
+  // 对象工厂
   protected ObjectFactory objectFactory = new DefaultObjectFactory();
+  // 对象包装工厂
   protected ObjectWrapperFactory objectWrapperFactory = new DefaultObjectWrapperFactory();
 
+  // 是否启用懒加载，该配置来自<settings>节点
   protected boolean lazyLoadingEnabled = false;
+  // 代理工厂
   protected ProxyFactory proxyFactory = new JavassistProxyFactory(); // #224 Using internal Javassist instead of OGNL
 
+  // 数据库编号
   protected String databaseId;
   /**
    * Configuration factory class.
@@ -123,24 +134,37 @@ public class Configuration {
    *
    * @see <a href='https://code.google.com/p/mybatis/issues/detail?id=300'>Issue 300 (google code)</a>
    */
+  // 配置工厂，用来创建用于加载反序列化的未读属性的配置
   protected Class<?> configurationFactory;
 
+  // 配置注册表
   protected final MapperRegistry mapperRegistry = new MapperRegistry(this);
+  // 拦截器链（用来支持插件的插入）
   protected final InterceptorChain interceptorChain = new InterceptorChain();
+  // 类型处理器注册表，内置许多，可以通过<typeHandlers>节点补充
   protected final TypeHandlerRegistry typeHandlerRegistry = new TypeHandlerRegistry();
+  // 类型别名注册表，内置许多，可以通过<typeAliases>节点补充
   protected final TypeAliasRegistry typeAliasRegistry = new TypeAliasRegistry();
+  // 语言驱动注册表
   protected final LanguageDriverRegistry languageRegistry = new LanguageDriverRegistry();
 
   // 该键为SQL语句的"namespace值.语句id值"(如果语句id值没有歧义的话，还会单独再以语句id值为键放入一份数据)
+  // 映射的数据库操作语句
   protected final Map<String, MappedStatement> mappedStatements = new StrictMap<MappedStatement>("Mapped Statements collection")
     .conflictMessageProducer((savedValue, targetValue) ->
       ". please check " + savedValue.getResource() + " and " + targetValue.getResource());
+  // 缓存
   protected final Map<String, Cache> caches = new StrictMap<>("Caches collection");
+  // 结果映射，即所有的<resultMap>节点
   protected final Map<String, ResultMap> resultMaps = new StrictMap<>("Result Maps collection");
+  // 参数映射，即所有的<parameterMap>节点
   protected final Map<String, ParameterMap> parameterMaps = new StrictMap<>("Parameter Maps collection");
+  // 主键生成器映射
   protected final Map<String, KeyGenerator> keyGenerators = new StrictMap<>("Key Generators collection");
 
+  // 载入的资源，如映射文件资源
   protected final Set<String> loadedResources = new HashSet<>();
+  // SQL语句片段，即所有的<sql>节点
   protected final Map<String, XNode> sqlFragments = new StrictMap<>("XML fragments parsed from previous mappers");
 
   // 存储暂时性错误的节点
@@ -151,6 +175,7 @@ public class Configuration {
    * 二是第一轮解析时只读入所有节点，但不处理依赖关系，然后第二轮解析时只处理依赖关系
    * Spring初始化时对Bean之间的依赖处理采用的就是这种方法
    */
+  // 暂存未处理完成的一些节点
   protected final Collection<XMLStatementBuilder> incompleteStatements = new LinkedList<>();
   protected final Collection<CacheRefResolver> incompleteCacheRefs = new LinkedList<>();
   protected final Collection<ResultMapResolver> incompleteResultMaps = new LinkedList<>();
@@ -161,6 +186,7 @@ public class Configuration {
    * references a cache bound to another namespace and the value is the
    * namespace which the actual cache is bound to.
    */
+  // 用来存储跨namespace的缓存共享设置
   protected final Map<String, String> cacheRefMap = new HashMap<>();
 
   public Configuration(Environment environment) {
@@ -905,6 +931,14 @@ public class Configuration {
     }
   }
 
+  /**
+   * 特点：
+   * 1. 不允许覆盖其中的键值
+   * 2. 自动尝试使用短名称再次存入给定数据
+   *
+   * @author yangwenxin
+   * @date 2023-06-13 17:37
+   */
   protected static class StrictMap<V> extends HashMap<String, V> {
 
     private static final long serialVersionUID = -4950446264854982944L;
@@ -944,21 +978,31 @@ public class Configuration {
       return this;
     }
 
+    /**
+     * 向Map中写入键值对
+     *
+     * @author yangwenxin
+     * @date 2023-06-13 17:40
+     */
     @Override
     @SuppressWarnings("unchecked")
     public V put(String key, V value) {
       if (containsKey(key)) {
+        // 如果已经存在此key，则直接报错
         throw new IllegalArgumentException(name + " already contains value for " + key
-            + (conflictMessageProducer == null ? "" : conflictMessageProducer.apply(super.get(key), value)));
+          + (conflictMessageProducer == null ? "" : conflictMessageProducer.apply(super.get(key), value)));
       }
       if (key.contains(".")) {
         final String shortKey = getShortName(key);
         if (super.get(shortKey) == null) {
+          // 以短名称为键，放置一次
           super.put(shortKey, value);
         } else {
+          // 放入该对象，表示短名称会引发歧义
           super.put(shortKey, (V) new Ambiguity(shortKey));
         }
       }
+      // 以长名称为键，放置一次
       return super.put(key, value);
     }
 
@@ -970,7 +1014,7 @@ public class Configuration {
       }
       if (value instanceof Ambiguity) {
         throw new IllegalArgumentException(((Ambiguity) value).getSubject() + " is ambiguous in " + name
-            + " (try using the full name including the namespace, or rename one of the entries)");
+          + " (try using the full name including the namespace, or rename one of the entries)");
       }
       return value;
     }
