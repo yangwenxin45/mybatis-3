@@ -15,19 +15,6 @@
  */
 package org.apache.ibatis.executor.loader;
 
-import java.io.Serializable;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.ibatis.cursor.Cursor;
 import org.apache.ibatis.executor.BaseExecutor;
 import org.apache.ibatis.executor.BatchResult;
@@ -41,20 +28,31 @@ import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 
+import java.io.Serializable;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.sql.SQLException;
+import java.util.*;
+
 /**
  * @author Clinton Begin
  * @author Franta Mejta
  */
 public class ResultLoaderMap {
 
+  // 存储尚未完成加载的属性
+  // 该HashMap中的键为属性名的大写，值为LoadPair对象
   private final Map<String, LoadPair> loaderMap = new HashMap<>();
 
   public void addLoader(String property, MetaObject metaResultObject, ResultLoader resultLoader) {
     String upperFirst = getUppercaseFirstProperty(property);
     if (!upperFirst.equalsIgnoreCase(property) && loaderMap.containsKey(upperFirst)) {
       throw new ExecutorException("Nested lazy loaded result property '" + property
-              + "' for query id '" + resultLoader.mappedStatement.getId()
-              + " already exists in the result map. The leftmost property of all lazy loaded properties must be unique within a result map.");
+        + "' for query id '" + resultLoader.mappedStatement.getId()
+        + " already exists in the result map. The leftmost property of all lazy loaded properties must be unique within a result map.");
     }
     loaderMap.put(upperFirst, new LoadPair(property, metaResultObject, resultLoader));
   }
@@ -102,44 +100,54 @@ public class ResultLoaderMap {
   }
 
   /**
+   * 实现对应属性的懒加载
    * Property which was not loaded yet.
    */
   public static class LoadPair implements Serializable {
 
     private static final long serialVersionUID = 20130412;
     /**
+     * 用来根据反射得到数据库连接的方法名
      * Name of factory method which returns database connection.
      */
     private static final String FACTORY_METHOD = "getConfiguration";
     /**
+     * 判断是否经过了序列化的标志位，因为该属性设置了transient，经过一次序列化和反序列化后会变为null
      * Object to check whether we went through serialization..
      */
     private final transient Object serializationCheck = new Object();
     /**
+     * 输出结果对象的封装
      * Meta object which sets loaded properties.
      */
     private transient MetaObject metaResultObject;
     /**
+     * 用以加载未加载属性的加载器
      * Result loader which loads unread properties.
      */
     private transient ResultLoader resultLoader;
     /**
+     * 日志记录器
      * Wow, logger.
      */
     private transient Log log;
     /**
+     * 用来获取数据库连接的工厂
      * Factory class through which we get database connection.
      */
     private Class<?> configurationFactory;
     /**
+     * 该未加载的属性的属性名
      * Name of the unread property.
      */
     private String property;
     /**
+     * 能够加载未加载属性的SQL语句的编号
      * ID of SQL statement which loads the property.
      */
     private String mappedStatement;
     /**
+     * 能够加载未加载属性的SQL语句的参数
      * Parameter of the sql statement.
      */
     private Serializable mappedParameter;
@@ -163,9 +171,9 @@ public class ResultLoaderMap {
           Log log = this.getLogger();
           if (log.isDebugEnabled()) {
             log.debug("Property [" + this.property + "] of ["
-                    + metaResultObject.getOriginalObject().getClass() + "] cannot be loaded "
-                    + "after deserialization. Make sure it's loaded before serializing "
-                    + "forenamed object.");
+              + metaResultObject.getOriginalObject().getClass() + "] cannot be loaded "
+              + "after deserialization. Make sure it's loaded before serializing "
+              + "forenamed object.");
           }
         }
       }
@@ -184,36 +192,49 @@ public class ResultLoaderMap {
       this.load(null);
     }
 
+    /**
+     * 进行加载操作
+     * 懒加载的过程就是执行懒加载SQL语句后，将查询结果使用输出结果加载器赋给输出结果元对象的过程
+     *
+     * @param userObject 需要被懒加载的对象（只有当this.metaResultObject == null || this.resultLoader == null时才生效，否则会采用属性metaResultObject对应的对象）
+     * @throws SQLException
+     */
     public void load(final Object userObject) throws SQLException {
       if (this.metaResultObject == null || this.resultLoader == null) {
+        // 输出结果对象的封装不存在或者输出结果加载器不存在
         if (this.mappedParameter == null) {
+          // 用以加载属性的对应的SQL语句不存在
           throw new ExecutorException("Property [" + this.property + "] cannot be loaded because "
-                  + "required parameter of mapped statement ["
-                  + this.mappedStatement + "] is not serializable.");
+            + "required parameter of mapped statement ["
+            + this.mappedStatement + "] is not serializable.");
         }
 
         final Configuration config = this.getConfiguration();
+        // 取出用来加载结果的SQL语句
         final MappedStatement ms = config.getMappedStatement(this.mappedStatement);
         if (ms == null) {
           throw new ExecutorException("Cannot lazy load property [" + this.property
-                  + "] of deserialized object [" + userObject.getClass()
-                  + "] because configuration does not contain statement ["
-                  + this.mappedStatement + "]");
+            + "] of deserialized object [" + userObject.getClass()
+            + "] because configuration does not contain statement ["
+            + this.mappedStatement + "]");
         }
 
+        // 输出结果对象的包装
         this.metaResultObject = config.newMetaObject(userObject);
+        // 创建结果加载器
         this.resultLoader = new ResultLoader(config, new ClosedExecutor(), ms, this.mappedParameter,
-                metaResultObject.getSetterType(this.property), null, null);
+          metaResultObject.getSetterType(this.property), null, null);
       }
 
       /* We are using a new executor because we may be (and likely are) on a new thread
        * and executors aren't thread safe. (Is this sufficient?)
        *
        * A better approach would be making executors thread safe. */
+      // 只要经历过持久化，就可能在别的线程中了。为这次懒加载创建的新线程ResultLoader
       if (this.serializationCheck == null) {
         final ResultLoader old = this.resultLoader;
         this.resultLoader = new ResultLoader(old.configuration, new ClosedExecutor(), old.mappedStatement,
-                old.parameterObject, old.targetType, old.cacheKey, old.boundSql);
+          old.parameterObject, old.targetType, old.cacheKey, old.boundSql);
       }
 
       this.metaResultObject.setValue(property, this.resultLoader.loadResult());
@@ -229,8 +250,8 @@ public class ResultLoaderMap {
         final Method factoryMethod = this.configurationFactory.getDeclaredMethod(FACTORY_METHOD);
         if (!Modifier.isStatic(factoryMethod.getModifiers())) {
           throw new ExecutorException("Cannot get Configuration as factory method ["
-                  + this.configurationFactory + "]#["
-                  + FACTORY_METHOD + "] is not static.");
+            + this.configurationFactory + "]#["
+            + FACTORY_METHOD + "] is not static.");
         }
 
         if (!factoryMethod.isAccessible()) {
@@ -249,23 +270,23 @@ public class ResultLoaderMap {
         throw ex;
       } catch (final NoSuchMethodException ex) {
         throw new ExecutorException("Cannot get Configuration as factory class ["
-                + this.configurationFactory + "] is missing factory method of name ["
-                + FACTORY_METHOD + "].", ex);
+          + this.configurationFactory + "] is missing factory method of name ["
+          + FACTORY_METHOD + "].", ex);
       } catch (final PrivilegedActionException ex) {
         throw new ExecutorException("Cannot get Configuration as factory method ["
-                + this.configurationFactory + "]#["
-                + FACTORY_METHOD + "] threw an exception.", ex.getCause());
+          + this.configurationFactory + "]#["
+          + FACTORY_METHOD + "] threw an exception.", ex.getCause());
       } catch (final Exception ex) {
         throw new ExecutorException("Cannot get Configuration as factory method ["
-                + this.configurationFactory + "]#["
-                + FACTORY_METHOD + "] threw an exception.", ex);
+          + this.configurationFactory + "]#["
+          + FACTORY_METHOD + "] threw an exception.", ex);
       }
 
       if (!(configurationObject instanceof Configuration)) {
         throw new ExecutorException("Cannot get Configuration as factory method ["
-                + this.configurationFactory + "]#["
-                + FACTORY_METHOD + "] didn't return [" + Configuration.class + "] but ["
-                + (configurationObject == null ? "null" : configurationObject.getClass()) + "].");
+          + this.configurationFactory + "]#["
+          + FACTORY_METHOD + "] didn't return [" + Configuration.class + "] but ["
+          + (configurationObject == null ? "null" : configurationObject.getClass()) + "].");
       }
 
       return Configuration.class.cast(configurationObject);
@@ -279,6 +300,13 @@ public class ResultLoaderMap {
     }
   }
 
+  /**
+   * ClosedExecutor类存在的目的就是通过isClosed方法返回true来表明自己是一个关闭的执行器，
+   * 以确保让任何遇到ClosedExecutor对象的操作都会重新创建一个新的有实际功能的Executor
+   *
+   * @author yangwenxin
+   * @date 2023-06-13 13:59
+   */
   private static final class ClosedExecutor extends BaseExecutor {
 
     public ClosedExecutor() {

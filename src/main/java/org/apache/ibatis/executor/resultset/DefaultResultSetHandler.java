@@ -160,34 +160,50 @@ public class DefaultResultSetHandler implements ResultSetHandler {
 
   //
   // HANDLE RESULT SETS
-  //
+  // 处理多结果集（也可能是单结果集，这是多结果集的一种简化形式）
+  // 在处理多结果集时，得到的两层列表是结果集列表和嵌套在其中的结构列表
   @Override
   public List<Object> handleResultSets(Statement stmt) throws SQLException {
     ErrorContext.instance().activity("handling results").object(mappedStatement.getId());
 
+    // 用以存储处理结果的列表
     final List<Object> multipleResults = new ArrayList<>();
 
+    // 可能会有多个结果集，该变量用来对结果集进行计数
     int resultSetCount = 0;
+    // 先取出第一个结果集
     ResultSetWrapper rsw = getFirstResultSet(stmt);
 
+    // 查询语句对应的resultMap节点，可能含有多个
     List<ResultMap> resultMaps = mappedStatement.getResultMaps();
     int resultMapCount = resultMaps.size();
+    // 合法性校验（存在输出结果集的情况下，resultMapCount不能为0）
     validateResultMapsCount(rsw, resultMapCount);
+    // 循环遍历每一个设置了resultMap的结果集
     while (rsw != null && resultMapCount > resultSetCount) {
+      // 获取当前结果集对应的resultMap
       ResultMap resultMap = resultMaps.get(resultSetCount);
+      // 进行结果集的处理
       handleResultSet(rsw, resultMap, multipleResults, null);
+      // 获取下一个结果集
       rsw = getNextResultSet(stmt);
+      // 清理上一条结果集的环境
       cleanUpAfterHandlingResultSet();
       resultSetCount++;
     }
 
+    // 获取多结果集中所有结果集的名称
     String[] resultSets = mappedStatement.getResultSets();
     if (resultSets != null) {
+      // 循环遍历每一个没有设置resultMap的结果集
       while (rsw != null && resultSetCount < resultSets.length) {
+        // 获取该结果集对应的父级resultMap的resultMapping
         ResultMapping parentMapping = nextResultMaps.get(resultSets[resultSetCount]);
         if (parentMapping != null) {
+          // 获取被嵌套的resultMap的编号
           String nestedResultMapId = parentMapping.getNestedResultMapId();
           ResultMap resultMap = configuration.getResultMap(nestedResultMapId);
+          // 处理嵌套映射
           handleResultSet(rsw, resultMap, null, parentMapping);
         }
         rsw = getNextResultSet(stmt);
@@ -196,6 +212,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
       }
     }
 
+    // 判断是否是单结果集：如果是则返回结果列表，如果不是则返回结果集列表
     return collapseSingleResultList(multipleResults);
   }
 
@@ -271,17 +288,29 @@ public class DefaultResultSetHandler implements ResultSetHandler {
   private void validateResultMapsCount(ResultSetWrapper rsw, int resultMapCount) {
     if (rsw != null && resultMapCount < 1) {
       throw new ExecutorException("A query was run and no Result Maps were found for the Mapped Statement '" + mappedStatement.getId()
-          + "'.  It's likely that neither a Result Type nor a Result Map was specified.");
+        + "'.  It's likely that neither a Result Type nor a Result Map was specified.");
     }
   }
 
+
+  /**
+   * 处理单一的结果集
+   *
+   * @author yangwenxin
+   * @date 2023-06-13 16:11
+   */
   private void handleResultSet(ResultSetWrapper rsw, ResultMap resultMap, List<Object> multipleResults, ResultMapping parentMapping) throws SQLException {
     try {
       if (parentMapping != null) {
+        // 嵌套的结果
+        // 向子方法传入parentMapping。处理结果中的记录
         handleRowValues(rsw, resultMap, null, RowBounds.DEFAULT, parentMapping);
       } else {
+        // 非嵌套的结果
         if (resultHandler == null) {
+          // defaultResultHandler能够将结果对象聚合成一个列表返回
           DefaultResultHandler defaultResultHandler = new DefaultResultHandler(objectFactory);
+          // 处理结果中的记录
           handleRowValues(rsw, resultMap, defaultResultHandler, rowBounds, null);
           multipleResults.add(defaultResultHandler.getResultList());
         } else {
@@ -303,12 +332,25 @@ public class DefaultResultSetHandler implements ResultSetHandler {
   // HANDLE ROWS FOR SIMPLE RESULTMAP
   //
 
+  /**
+   * 处理单结果集中的属性
+   *
+   * @param rsw           单结果集的包装
+   * @param resultMap     结果映射
+   * @param resultHandler 结果处理器
+   * @param rowBounds     翻页限制条件
+   * @param parentMapping 父级结果映射
+   * @throws SQLException
+   */
   public void handleRowValues(ResultSetWrapper rsw, ResultMap resultMap, ResultHandler<?> resultHandler, RowBounds rowBounds, ResultMapping parentMapping) throws SQLException {
     if (resultMap.hasNestedResultMaps()) {
+      // 前置校验
       ensureNoRowBounds();
       checkResultHandler();
+      // 处理嵌套映射
       handleRowValuesForNestedResultMap(rsw, resultMap, resultHandler, rowBounds, parentMapping);
     } else {
+      // 处理单层映射
       handleRowValuesForSimpleResultMap(rsw, resultMap, resultHandler, rowBounds, parentMapping);
     }
   }
@@ -323,27 +365,51 @@ public class DefaultResultSetHandler implements ResultSetHandler {
   protected void checkResultHandler() {
     if (resultHandler != null && configuration.isSafeResultHandlerEnabled() && !mappedStatement.isResultOrdered()) {
       throw new ExecutorException("Mapped Statements with nested result mappings cannot be safely used with a custom ResultHandler. "
-          + "Use safeResultHandlerEnabled=false setting to bypass this check "
-          + "or ensure your statement returns ordered data and set resultOrdered=true on it.");
+        + "Use safeResultHandlerEnabled=false setting to bypass this check "
+        + "or ensure your statement returns ordered data and set resultOrdered=true on it.");
     }
   }
 
+  /**
+   * 处理非嵌套映射的结果集
+   *
+   * @param rsw           结果集包装
+   * @param resultMap     结果映射
+   * @param resultHandler 结果处理器
+   * @param rowBounds     翻页限制条件
+   * @param parentMapping 父级结果映射
+   * @throws SQLException
+   */
   private void handleRowValuesForSimpleResultMap(ResultSetWrapper rsw, ResultMap resultMap, ResultHandler<?> resultHandler, RowBounds rowBounds, ResultMapping parentMapping)
-      throws SQLException {
+    throws SQLException {
     DefaultResultContext<Object> resultContext = new DefaultResultContext<>();
+    // 当前要处理的结果集
     ResultSet resultSet = rsw.getResultSet();
+    // 根据翻页配置，跳过指定的行
     skipRows(resultSet, rowBounds);
+    // 持续处理下一条结果，判断条件为：还有结果需要处理 && 结果集没有关闭 && 还有下一条结果
     while (shouldProcessMoreRows(resultContext, rowBounds) && !resultSet.isClosed() && resultSet.next()) {
+      // 经过鉴别器鉴别，确定经过鉴别器分析的最终要使用的resultMap
       ResultMap discriminatedResultMap = resolveDiscriminatedResultMap(resultSet, resultMap, null);
+      // 拿到一行记录，并且将其转化为一个对象
       Object rowValue = getRowValue(rsw, discriminatedResultMap, null);
+      // 把由这一行记录转化得到的对象存起来
       storeObject(resultHandler, resultContext, rowValue, parentMapping, resultSet);
     }
   }
 
+  /**
+   * 存储当前结果对象
+   *
+   * @author yangwenxin
+   * @date 2023-06-13 16:25
+   */
   private void storeObject(ResultHandler<?> resultHandler, DefaultResultContext<Object> resultContext, Object rowValue, ResultMapping parentMapping, ResultSet rs) throws SQLException {
     if (parentMapping != null) {
+      // 存在父级，则将这一行记录对应的结果对象绑定到父级结果上
       linkToParents(rs, parentMapping, rowValue);
     } else {
+      // 使用resultHandler聚合该对象
       callResultHandler(resultHandler, resultContext, rowValue);
     }
   }
@@ -374,17 +440,22 @@ public class DefaultResultSetHandler implements ResultSetHandler {
 
   //
   // GET VALUE FROM ROW FOR SIMPLE RESULT MAP
-  //
+  // 将一条记录转化为一个对象
 
   private Object getRowValue(ResultSetWrapper rsw, ResultMap resultMap, String columnPrefix) throws SQLException {
     final ResultLoaderMap lazyLoader = new ResultLoaderMap();
+    // 创建这一行记录对应的对象
     Object rowValue = createResultObject(rsw, resultMap, lazyLoader, columnPrefix);
     if (rowValue != null && !hasTypeHandlerForResultObject(rsw, resultMap.getType())) {
+      // 根据对象得到其MetaObject
       final MetaObject metaObject = configuration.newMetaObject(rowValue);
       boolean foundValues = this.useConstructorMappings;
+      // 是否允许自动映射未明示的字段
       if (shouldApplyAutomaticMappings(resultMap, false)) {
+        // 自动映射未明示的字段
         foundValues = applyAutomaticMappings(rsw, resultMap, metaObject, columnPrefix) || foundValues;
       }
+      // 按照明示的字段进行重新映射
       foundValues = applyPropertyMappings(rsw, resultMap, metaObject, lazyLoader, columnPrefix) || foundValues;
       foundValues = lazyLoader.size() > 0 || foundValues;
       rowValue = foundValues || configuration.isReturnInstanceForEmptyRow() ? rowValue : null;

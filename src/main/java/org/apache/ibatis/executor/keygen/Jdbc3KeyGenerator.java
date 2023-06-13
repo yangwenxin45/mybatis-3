@@ -15,20 +15,6 @@
  */
 package org.apache.ibatis.executor.keygen;
 
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import org.apache.ibatis.binding.MapperMethod.ParamMap;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.executor.ExecutorException;
@@ -41,7 +27,17 @@ import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.TypeHandler;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.*;
+import java.util.Map.Entry;
+
 /**
+ * 意义是提供自增主键的回写功能
+ * 所做工作是在Java对象插入完成后，将数据库自增产生的id读取出来，然后回写给Java对象本身
+ *
  * @author Clinton Begin
  * @author Kazuki Shimizu
  */
@@ -67,17 +63,30 @@ public class Jdbc3KeyGenerator implements KeyGenerator {
     processBatch(ms, stmt, parameter);
   }
 
+  /**
+   * 调用Statement对象的getGeneratedKeys方法获取数据库自增生成的主键，然后将主键赋给实参已达到回写的目的
+   *
+   * @author yangwenxin
+   * @date 2023-06-13 10:23
+   */
   public void processBatch(MappedStatement ms, Statement stmt, Object parameter) {
+    // 拿到主键的属性名
     final String[] keyProperties = ms.getKeyProperties();
     if (keyProperties == null || keyProperties.length == 0) {
+      // 没有主键则无须操作
       return;
     }
+    // 调用Statement对象的getGeneratedKeys方法获取自动生产的主键
     try (ResultSet rs = stmt.getGeneratedKeys()) {
+      // 获取输出结果的描述信息
       final ResultSetMetaData rsmd = rs.getMetaData();
       final Configuration configuration = ms.getConfiguration();
       if (rsmd.getColumnCount() < keyProperties.length) {
         // Error?
+        // 主键数目比结果的总字段数目还多，发生了错误
+        // 但因为次数是获取主键这样的附属操作，因此忽略错误，不影响主要工作
       } else {
+        // 调用子方法，将主键值赋给实参
         assignKeys(configuration, rs, rsmd, keyProperties, parameter);
       }
     } catch (Exception e) {

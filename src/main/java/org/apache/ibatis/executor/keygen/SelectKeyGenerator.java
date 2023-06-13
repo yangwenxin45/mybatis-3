@@ -15,9 +15,6 @@
  */
 package org.apache.ibatis.executor.keygen;
 
-import java.sql.Statement;
-import java.util.List;
-
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.executor.ExecutorException;
 import org.apache.ibatis.mapping.MappedStatement;
@@ -26,14 +23,22 @@ import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.RowBounds;
 
+import java.sql.Statement;
+import java.util.List;
+
 /**
+ * 可以真正地生成主键
+ *
  * @author Clinton Begin
  * @author Jeff Butler
  */
 public class SelectKeyGenerator implements KeyGenerator {
 
+  // 用户生成主键的SQL语句的特有标志，该标志会追加在用于生成主键的SQL语句的id的后方
   public static final String SELECT_KEY_SUFFIX = "!selectKey";
+  // 插入前执行还是插入后执行
   private final boolean executeBefore;
+  // 用户生成主键的SQL语句
   private final MappedStatement keyStatement;
 
   public SelectKeyGenerator(MappedStatement keyStatement, boolean executeBefore) {
@@ -41,6 +46,12 @@ public class SelectKeyGenerator implements KeyGenerator {
     this.keyStatement = keyStatement;
   }
 
+  /**
+   * 数据插入前进行的操作
+   *
+   * @author yangwenxin
+   * @date 2023-06-13 10:29
+   */
   @Override
   public void processBefore(Executor executor, MappedStatement ms, Statement stmt, Object parameter) {
     if (executeBefore) {
@@ -48,6 +59,14 @@ public class SelectKeyGenerator implements KeyGenerator {
     }
   }
 
+  /**
+   * 数据插入后进行的操作
+   * 如果数据库支持主键自增，那么就在数据插入之后执行
+   * 如果数据库不支持主键自增，那么就在数据插入之前执行
+   *
+   * @author yangwenxin
+   * @date 2023-06-13 10:29
+   */
   @Override
   public void processAfter(Executor executor, MappedStatement ms, Statement stmt, Object parameter) {
     if (!executeBefore) {
@@ -55,17 +74,30 @@ public class SelectKeyGenerator implements KeyGenerator {
     }
   }
 
+  /**
+   * 执行一段SQL语句后获取一个值，然后将该值赋给Java对象的自增属性
+   *
+   * @param executor  执行器
+   * @param ms        插入操作的SQL语句（不是生成主键的SQL语句）
+   * @param parameter 插入操作的对象
+   */
   private void processGeneratedKeys(Executor executor, MappedStatement ms, Object parameter) {
     try {
+      // keyStatement为生成主键的SQL语句
       if (parameter != null && keyStatement != null && keyStatement.getKeyProperties() != null) {
+        // 拿到的是要自增的属性
         String[] keyProperties = keyStatement.getKeyProperties();
         final Configuration configuration = ms.getConfiguration();
         final MetaObject metaParam = configuration.newMetaObject(parameter);
         if (keyProperties != null) {
           // Do not close keyExecutor.
           // The transaction will be closed by parent executor.
+          // 为生成的主键的SQL语句创建执行器keyExecutor
+          // 不要关闭keyExecutor，因为它会被父级的执行器关闭
           Executor keyExecutor = configuration.newExecutor(executor.getTransaction(), ExecutorType.SIMPLE);
+          // 执行SQL语句，得到主键值
           List<Object> values = keyExecutor.query(keyStatement, parameter, RowBounds.DEFAULT, Executor.NO_RESULT_HANDLER);
+          // 主键值必须唯一
           if (values.size() == 0) {
             throw new ExecutorException("SelectKey returned no data.");
           } else if (values.size() > 1) {
@@ -73,14 +105,18 @@ public class SelectKeyGenerator implements KeyGenerator {
           } else {
             MetaObject metaResult = configuration.newMetaObject(values.get(0));
             if (keyProperties.length == 1) {
+              // 要自增的主键只有一个，为其赋值
               if (metaResult.hasGetter(keyProperties[0])) {
+                // 从metaResult中用getter方法得到主键值
                 setValue(metaParam, keyProperties[0], metaResult.getValue(keyProperties[0]));
               } else {
                 // no getter for the property - maybe just a single value object
                 // so try that
+                // 可能返回的就是主键值本身
                 setValue(metaParam, keyProperties[0], values.get(0));
               }
             } else {
+              // 要把执行的SQL语句得到的值赋给多个属性
               handleMultipleProperties(keyProperties, metaParam, metaResult);
             }
           }

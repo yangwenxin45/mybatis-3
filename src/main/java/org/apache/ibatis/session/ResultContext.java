@@ -16,6 +16,8 @@
 package org.apache.ibatis.session;
 
 /**
+ * 结果上下文，其中存放了数据库操作的一个结果对象（对应数据库中的一条记录）
+ *
  * @author Clinton Begin
  */
 public interface ResultContext<T> {

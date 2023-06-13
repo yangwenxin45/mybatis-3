@@ -15,25 +15,13 @@
  */
 package org.apache.ibatis.executor.loader;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InvalidClassException;
-import java.io.ObjectInput;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
-import java.io.ObjectStreamClass;
-import java.io.ObjectStreamException;
-import java.io.StreamCorruptedException;
+import org.apache.ibatis.reflection.factory.ObjectFactory;
+
+import java.io.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.ibatis.reflection.factory.ObjectFactory;
 
 /**
  * @author Eduardo Macarron
@@ -43,11 +31,17 @@ public abstract class AbstractSerialStateHolder implements Externalizable {
 
   private static final long serialVersionUID = 8940388717901644661L;
   private static final ThreadLocal<ObjectOutputStream> stream = new ThreadLocal<>();
+  // 序列化后的对象
   private byte[] userBeanBytes = new byte[0];
+  // 原对象
   private Object userBean;
+  // 未加载的属性
   private Map<String, ResultLoaderMap.LoadPair> unloadedProperties;
+  // 对象工厂，创建对象时使用
   private ObjectFactory objectFactory;
+  // 构造函数的属性类型列表，创建对象时使用
   private Class<?>[] constructorArgTypes;
+  // 构造函数的属性列表，创建对象时使用
   private Object[] constructorArgs;
 
   public AbstractSerialStateHolder() {
@@ -101,14 +95,22 @@ public abstract class AbstractSerialStateHolder implements Externalizable {
     }
   }
 
+  /**
+   * 反序列化时被调用，给出反序列化的对象
+   *
+   * @return 最终给出的反序列化对象
+   * @throws ObjectStreamException
+   */
   @SuppressWarnings("unchecked")
   protected final Object readResolve() throws ObjectStreamException {
     /* Second run */
+    // 非第一次运行，直接输出已经解析好的被代理对象
     if (this.userBean != null && this.userBeanBytes.length == 0) {
       return this.userBean;
     }
 
     /* First run */
+    // 第一次运行时，反序列化输出
     try (ObjectInputStream in = new LookAheadObjectInputStream(new ByteArrayInputStream(this.userBeanBytes))) {
       this.userBean = in.readObject();
       this.unloadedProperties = (Map<String, ResultLoaderMap.LoadPair>) in.readObject();
@@ -125,6 +127,7 @@ public abstract class AbstractSerialStateHolder implements Externalizable {
     final List<Class<?>> arrayTypes = Arrays.asList(this.constructorArgTypes);
     final List<Object> arrayValues = Arrays.asList(this.constructorArgs);
 
+    // 创建一个反序列化的代理输出，是EnhancedDeserializationProxyImpl对象
     return this.createDeserializationProxy(userBean, arrayProps, objectFactory, arrayTypes, arrayValues);
   }
 

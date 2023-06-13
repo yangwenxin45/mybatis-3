@@ -214,6 +214,12 @@ public class DefaultCursor<T> implements Cursor<T> {
     return indexWithRowBound + 1;
   }
 
+  /**
+   * 负责将一个ResultContext聚合为一个Cursor返回
+   *
+   * @author yangwenxin
+   * @date 2023-06-13 15:22
+   */
   private static class ObjectWrapperResultHandler<T> implements ResultHandler<T> {
 
     private T result;

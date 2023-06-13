@@ -15,38 +15,36 @@
  */
 package org.apache.ibatis.executor.resultset;
 
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.mapping.ResultMap;
 import org.apache.ibatis.session.Configuration;
-import org.apache.ibatis.type.JdbcType;
-import org.apache.ibatis.type.ObjectTypeHandler;
-import org.apache.ibatis.type.TypeHandler;
-import org.apache.ibatis.type.TypeHandlerRegistry;
-import org.apache.ibatis.type.UnknownTypeHandler;
+import org.apache.ibatis.type.*;
+
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.*;
 
 /**
  * @author Iwao AVE!
  */
 public class ResultSetWrapper {
 
+  // 被装饰的resultSet对象
   private final ResultSet resultSet;
+  // 类型处理器注册表
   private final TypeHandlerRegistry typeHandlerRegistry;
+  // resultSet中各个列对应的列名列表
   private final List<String> columnNames = new ArrayList<>();
+  // resultSet中各个列对应的Java类型列表
   private final List<String> classNames = new ArrayList<>();
+  // resultSet中各个列对应的JDBC类型列表
   private final List<JdbcType> jdbcTypes = new ArrayList<>();
+  // 类型与类型处理器的映射表。结构为：Map<列名，Map<Java类型，类型处理器>>
   private final Map<String, Map<Class<?>, TypeHandler<?>>> typeHandlerMap = new HashMap<>();
+  // 记录了所有的有映射关系的列。结构为：Map<resultMap的id，List<对象映射的列名>>
   private final Map<String, List<String>> mappedColumnNamesMap = new HashMap<>();
+  // 记录了所有的无映射关系的列。结构为：Map<resultMap的id，List<对象映射的列名>>
   private final Map<String, List<String>> unMappedColumnNamesMap = new HashMap<>();
 
   public ResultSetWrapper(ResultSet rs, Configuration configuration) throws SQLException {

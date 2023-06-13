@@ -16,14 +16,21 @@
 package org.apache.ibatis.executor;
 
 /**
+ * 错误上下文，能够提前将一些背景信息保存下来
+ *
  * @author Clinton Begin
  */
 public class ErrorContext {
 
-  private static final String LINE_SEPARATOR = System.getProperty("line.separator","\n");
+  // 获取当前操作系统的换行符
+  private static final String LINE_SEPARATOR = System.getProperty("line.separator", "\n");
+  // 将自身存储进ThreadLocal，从而进行线程间的隔离
   private static final ThreadLocal<ErrorContext> LOCAL = new ThreadLocal<>();
 
+  // 存储上一版本的自身，从而组成错误链
   private ErrorContext stored;
+
+  // 下面几条为错误的详细信息，可以写入一项或者多项
   private String resource;
   private String activity;
   private String object;
@@ -34,6 +41,13 @@ public class ErrorContext {
   private ErrorContext() {
   }
 
+  /**
+   * 从ThreadLocal取出已经实例化的ErrorContext，或者实例化一个ErrorContext放入ThreadLocal
+   * 当需要获得当前线程的ErrorContext对象时调用
+   *
+   * @author yangwenxin
+   * @date 2023-06-13 16:44
+   */
   public static ErrorContext instance() {
     ErrorContext context = LOCAL.get();
     if (context == null) {
@@ -43,6 +57,13 @@ public class ErrorContext {
     return context;
   }
 
+  /**
+   * 创建一个包装了原有ErrorContext的新ErrorContext
+   * 当线程进入下一级操作并处于一个全新的环境时调用
+   *
+   * @author yangwenxin
+   * @date 2023-06-13 16:45
+   */
   public ErrorContext store() {
     ErrorContext newContext = new ErrorContext();
     newContext.stored = this;
@@ -50,6 +71,13 @@ public class ErrorContext {
     return LOCAL.get();
   }
 
+  /**
+   * 剥离当前ErrorContext的内部ErrorContext
+   * 当线程从下一级操作返回上一级时调用
+   *
+   * @author yangwenxin
+   * @date 2023-06-13 16:46
+   */
   public ErrorContext recall() {
     if (stored != null) {
       LOCAL.set(stored);
@@ -88,6 +116,12 @@ public class ErrorContext {
     return this;
   }
 
+  /**
+   * 当线程进入一个与之前操作无关的新环境时调用
+   *
+   * @author yangwenxin
+   * @date 2023-06-13 16:48
+   */
   public ErrorContext reset() {
     resource = null;
     activity = null;
@@ -99,6 +133,12 @@ public class ErrorContext {
     return this;
   }
 
+  /**
+   * 当线程需要打印异常信息时调用
+   *
+   * @author yangwenxin
+   * @date 2023-06-13 16:47
+   */
   @Override
   public String toString() {
     StringBuilder description = new StringBuilder();
