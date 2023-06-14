@@ -77,39 +77,65 @@ import java.util.*;
 import java.util.function.BiFunction;
 
 /**
- * 包含了Mybatis运行的所有配置信息，即mybatis-config.xml的configuration节点的信息
+ * Mybatis总配置类，包含了Mybatis运行的所有配置信息，即mybatis-config.xml的configuration节点的信息
  *
  * @author Clinton Begin
  */
 public class Configuration {
 
   // <environment>节点的信息
+  // 尽管可以配置多个环境，但每个SqlSessionFactory实例只能选择一种环境
   protected Environment environment;
 
   // 以下为<settings>节点中的配置信息
+  // 是否允许在嵌套语句中使用分页。如果允许使用则设置为false
   protected boolean safeRowBoundsEnabled;
+  // 是否允许在嵌套语句中使用结果处理器。如果允许则设置为false
   protected boolean safeResultHandlerEnabled = true;
+  // 是否开启驼峰命名自动映射(数据库列名->Java属性)
   protected boolean mapUnderscoreToCamelCase;
+  // 开启时，任一方法的调用都会加载该对象的所有延迟加载属性。否则，每个延迟加载属性会按需加载
   protected boolean aggressiveLazyLoading;
+  // 是否允许单个语句返回多结果集（需要数据库驱动支持）
   protected boolean multipleResultSetsEnabled = true;
+  // 允许JDBC支持自动生成主键，需要数据库驱动支持。如果设置为true，将强制使用自动生成主键
   protected boolean useGeneratedKeys;
+  // 使用列别名代替列名，实际表现依赖于数据库驱动
   protected boolean useColumnLabel = true;
+  // 全局性地开启或关闭所有映射器配置文件中已配置的任何缓存
   protected boolean cacheEnabled = true;
+  // 指定当结果集中值为null的时候是否调用映射对象的setter方法
   protected boolean callSettersOnNulls;
+  // 允许使用方法签名中的名称作为语句参数名称
   protected boolean useActualParamName = true;
+  // 当返回行的所有列都是空时，Mybatis默认返回null。当开启这个设置时，Mybatis会返回一个空实例
   protected boolean returnInstanceForEmptyRow;
 
+  // 指定Mybatis增加到日志名称的前缀
   protected String logPrefix;
+  // 指定Mybatis所用日志的具体实现，未指定时将自动查找
   protected Class<? extends Log> logImpl;
+  // 指定VFS的实现
   protected Class<? extends VFS> vfsImpl;
+  // Mybatis利用本地缓存机制防止循环引用和加速重复的嵌套查询
+  // 默认为session，会缓存一个会话中执行的所有查询
   protected LocalCacheScope localCacheScope = LocalCacheScope.SESSION;
+  // 当没有为参数指定特定的JDBC类型时，空值的默认JDBC类型
   protected JdbcType jdbcTypeForNull = JdbcType.OTHER;
+  // 指定对象的哪些方法触发一次延迟加载
+  // Mybatis会将这些属性的值设置为代理对象，并且只有在调用代理的某些方法时才会触发实际的查询操作
   protected Set<String> lazyLoadTriggerMethods = new HashSet<>(Arrays.asList("equals", "clone", "hashCode", "toString"));
+  // 设置超时时间，它决定数据库驱动等待数据库响应的秒数
   protected Integer defaultStatementTimeout;
+  // 为驱动的结果集获取数量设置一个建议值。此参数只可以在查询设置中被覆盖
   protected Integer defaultFetchSize;
+  // 指定语句默认的滚动策略
   protected ResultSetType defaultResultSetType;
+  // 设置默认的执行器。SIMPLE就是普通的执行器，REUSE执行器会重用预处理语句，BATCH执行器不仅重用语句还会执行批量更新
   protected ExecutorType defaultExecutorType = ExecutorType.SIMPLE;
+  // 指定Mybatis应如何自动映射列到字段或属性。NONE表示关闭自动映射，PARTIAL只会自动映射没有定义嵌套结果映射的字段，FULL会自动映射任何复杂的结果集
   protected AutoMappingBehavior autoMappingBehavior = AutoMappingBehavior.PARTIAL;
+  // 指定发现自动映射目标未知列的行为
   protected AutoMappingUnknownColumnBehavior autoMappingUnknownColumnBehavior = AutoMappingUnknownColumnBehavior.NONE;
 
   // <properties>节点信息
@@ -977,9 +1003,11 @@ public class Configuration {
     }
 
     /**
+     * 当包含具有相同键的值时，分配一个函数以产生冲突错误消息
      * Assign a function for producing a conflict error message when contains value with the same key.
      * <p>
      * function arguments are 1st is saved value and 2nd is target value.
+     *
      * @param conflictMessageProducer A function for producing a conflict error message
      * @return a conflict error message
      * @since 3.5.0
@@ -1030,7 +1058,14 @@ public class Configuration {
       return value;
     }
 
+    /**
+     * 表示StrictMap中存在多个值对应同一个键的情况，也就是存在歧义
+     *
+     * @author yangwenxin
+     * @date 2023-06-14 16:31
+     */
     protected static class Ambiguity {
+      // 存在歧义的键名
       final private String subject;
 
       public Ambiguity(String subject) {

@@ -30,6 +30,8 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
+ * SQL会话管理器
+ *
  * @author Larry Meadors
  */
 public class SqlSessionManager implements SqlSessionFactory, SqlSession {

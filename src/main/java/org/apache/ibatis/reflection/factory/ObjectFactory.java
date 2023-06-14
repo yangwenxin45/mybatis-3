@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Properties;
 
 /**
+ * 每次Mybatis创建结果对象的新实例时，它都会使用一个对象工厂实例来完成实例化工作
  * MyBatis uses an ObjectFactory to create all needed new Objects.
  *
  * @author Clinton Begin

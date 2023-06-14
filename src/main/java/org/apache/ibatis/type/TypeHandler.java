@@ -21,6 +21,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
+ * Mybatis在设置预处理语句中的参数或从结果集中取出一个值时，都会用类型处理器将获取到的值以合适的方式转换成Java类型
+ *
  * @author Clinton Begin
  */
 public interface TypeHandler<T> {

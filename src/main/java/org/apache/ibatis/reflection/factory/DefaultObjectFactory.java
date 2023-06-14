@@ -24,6 +24,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
+ * 默认的对象工厂需要做的仅仅是实例化目标类，要么通过默认无参构造方法，要么通过存在的参数映射来调用带有参数的构造方法
+ * 如果想覆盖对象工厂的默认行为，可以通过创建自己的对象工厂来实现
+ *
  * @author Clinton Begin
  */
 public class DefaultObjectFactory implements ObjectFactory, Serializable {

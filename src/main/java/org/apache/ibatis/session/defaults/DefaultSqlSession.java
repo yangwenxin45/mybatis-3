@@ -38,7 +38,7 @@ import java.util.*;
 /**
  * The default implementation for {@link SqlSession}.
  * Note that this class is not Thread-Safe.
- * 负责把接口包的工作交给执行器包处理
+ * 默认的SqlSession，负责把接口包的工作交给执行器包处理
  *
  * @author Clinton Begin
  */
@@ -95,11 +95,17 @@ public class DefaultSqlSession implements SqlSession {
     return this.selectMap(statement, parameter, mapKey, RowBounds.DEFAULT);
   }
 
+  /**
+   * selectMap是一种特殊情况，会创建一个DefaultMapResultHandler对象将List结果集转换为Map结果集
+   *
+   * @author yangwenxin
+   * @date 2023-06-14 14:15
+   */
   @Override
   public <K, V> Map<K, V> selectMap(String statement, Object parameter, String mapKey, RowBounds rowBounds) {
     final List<? extends V> list = selectList(statement, parameter, rowBounds);
     final DefaultMapResultHandler<K, V> mapResultHandler = new DefaultMapResultHandler<>(mapKey,
-            configuration.getObjectFactory(), configuration.getObjectWrapperFactory(), configuration.getReflectorFactory());
+      configuration.getObjectFactory(), configuration.getObjectWrapperFactory(), configuration.getReflectorFactory());
     final DefaultResultContext<V> context = new DefaultResultContext<>();
     for (V o : list) {
       context.nextResultObject(o);

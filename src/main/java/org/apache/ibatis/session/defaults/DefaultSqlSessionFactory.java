@@ -28,6 +28,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 /**
+ * 默认的SqlSessionFactory
+ *
  * @author Clinton Begin
  */
 public class DefaultSqlSessionFactory implements SqlSessionFactory {
@@ -114,12 +116,14 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
 
   private SqlSession openSessionFromConnection(ExecutorType execType, Connection connection) {
     try {
+      // 是否自动提交
       boolean autoCommit;
       try {
         autoCommit = connection.getAutoCommit();
       } catch (SQLException e) {
         // Failover to true, as most poor drivers
         // or databases won't support transactions
+        // 出现异常默认为true，因为大多数不良的驱动或数据库不支持事务
         autoCommit = true;
       }
       final Environment environment = configuration.getEnvironment();

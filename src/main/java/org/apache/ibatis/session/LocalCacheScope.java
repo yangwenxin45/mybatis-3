@@ -17,7 +17,7 @@ package org.apache.ibatis.session;
 
 /**
  * 表示本地缓存的作用范围
- * 可选向有会话和语句
+ * 可选项有会话和语句
  *
  * @author Eduardo Macarron
  */
