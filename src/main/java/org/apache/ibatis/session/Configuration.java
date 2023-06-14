@@ -597,9 +597,20 @@ public class Configuration {
     return MetaObject.forObject(object, objectFactory, objectWrapperFactory, reflectorFactory);
   }
 
+  /**
+   * 创建参数拦截器
+   *
+   * @param mappedStatement 数据库操作的信息
+   * @param parameterObject 参数对象
+   * @param boundSql        语句信息
+   * @return
+   */
   public ParameterHandler newParameterHandler(MappedStatement mappedStatement, Object parameterObject, BoundSql boundSql) {
+    // 创建参数处理器
     ParameterHandler parameterHandler = mappedStatement.getLang().createParameterHandler(mappedStatement, parameterObject, boundSql);
+    // 将参数处理器交给拦截器链进行替换，以便拦截器链中的拦截器能注入行为
     parameterHandler = (ParameterHandler) interceptorChain.pluginAll(parameterHandler);
+    // 返回最终的参数处理器
     return parameterHandler;
   }
 

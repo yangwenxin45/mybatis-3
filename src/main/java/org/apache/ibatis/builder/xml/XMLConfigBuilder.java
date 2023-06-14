@@ -188,13 +188,26 @@ public class XMLConfigBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   * 解析plugin节点
+   *
+   * @author yangwenxin
+   * @date 2023-06-14 10:18
+   */
   private void pluginElement(XNode parent) throws Exception {
+    // <plugins>节点存在
     if (parent != null) {
+      // 依次取出<plugins>节点下的每个<plugin>节点
       for (XNode child : parent.getChildren()) {
+        // 读取拦截器类名
         String interceptor = child.getStringAttribute("interceptor");
+        // 读取拦截器属性
         Properties properties = child.getChildrenAsProperties();
+        // 实例化拦截器类
         Interceptor interceptorInstance = (Interceptor) resolveClass(interceptor).newInstance();
+        // 设置拦截器的属性
         interceptorInstance.setProperties(properties);
+        // 将当前拦截器加入拦截器链中
         configuration.addInterceptor(interceptorInstance);
       }
     }
