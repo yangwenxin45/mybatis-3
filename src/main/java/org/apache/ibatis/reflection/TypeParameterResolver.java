@@ -100,6 +100,7 @@ public class TypeParameterResolver {
     } else if (componentType instanceof ParameterizedType) {
       resolvedComponentType = resolveParameterizedType((ParameterizedType) componentType, srcType, declaringClass);
     }
+    // 根据解析后的数组项类型构造返回类型
     if (resolvedComponentType instanceof Class) {
       return Array.newInstance((Class<?>) resolvedComponentType, 0).getClass();
     } else {
