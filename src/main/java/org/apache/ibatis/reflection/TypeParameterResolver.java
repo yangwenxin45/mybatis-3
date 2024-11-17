@@ -169,6 +169,7 @@ public class TypeParameterResolver {
    */
   private static Type resolveTypeVar(TypeVariable<?> typeVar, Type srcType, Class<?> declaringClass) {
     Type result;
+    // 确定 srcType 的具体类型，并将其转换为 Class 类型
     Class<?> clazz;
     if (srcType instanceof Class) {
       clazz = (Class<?>) srcType;
@@ -212,11 +213,13 @@ public class TypeParameterResolver {
   private static Type scanSuperTypes(TypeVariable<?> typeVar, Type srcType, Class<?> declaringClass, Class<?> clazz, Type superclass) {
     if (superclass instanceof ParameterizedType) {
       ParameterizedType parentAsType = (ParameterizedType) superclass;
-      Class<?> parentAsClass = (Class<?>) parentAsType.getRawType();
-      TypeVariable<?>[] parentTypeVars = parentAsClass.getTypeParameters();
       if (srcType instanceof ParameterizedType) {
         parentAsType = translateParentTypeVars((ParameterizedType) srcType, clazz, parentAsType);
       }
+
+      Class<?> parentAsClass = (Class<?>) parentAsType.getRawType();
+      // 获取类上的类型变量
+      TypeVariable<?>[] parentTypeVars = parentAsClass.getTypeParameters();
       if (declaringClass == parentAsClass) {
         for (int i = 0; i < parentTypeVars.length; i++) {
           if (typeVar == parentTypeVars[i]) {
@@ -225,6 +228,7 @@ public class TypeParameterResolver {
         }
       }
       if (declaringClass.isAssignableFrom(parentAsClass)) {
+        // 继续解析父类，直到解析到定义该字段的类
         return resolveTypeVar(typeVar, parentAsType, declaringClass);
       }
     } else if (superclass instanceof Class && declaringClass.isAssignableFrom((Class<?>) superclass)) {
@@ -233,9 +237,16 @@ public class TypeParameterResolver {
     return null;
   }
 
+  /**
+   * 将 parentType 类型变量替换为 srcType 的实际参数
+   *
+   * @author yangwenxin
+   * @date 2024-11-17 11:29
+   */
   private static ParameterizedType translateParentTypeVars(ParameterizedType srcType, Class<?> srcClass, ParameterizedType parentType) {
     Type[] parentTypeArgs = parentType.getActualTypeArguments();
     Type[] srcTypeArgs = srcType.getActualTypeArguments();
+
     TypeVariable<?>[] srcTypeVars = srcClass.getTypeParameters();
     Type[] newParentArgs = new Type[parentTypeArgs.length];
     boolean noChange = true;
