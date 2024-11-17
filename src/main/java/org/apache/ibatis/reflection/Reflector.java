@@ -112,6 +112,7 @@ public class Reflector {
         Class<?> winnerType = winner.getReturnType();
         Class<?> candidateType = candidate.getReturnType();
         if (candidateType.equals(winnerType)) {
+          // 如果返回类型是布尔类型且候选方法名称以 is 开头，则选择候选方法作为胜出方法
           if (!boolean.class.equals(candidateType)) {
             throw new ReflectionException(
               "Illegal overloaded getter method with ambiguous type for property "
@@ -136,6 +137,7 @@ public class Reflector {
   }
 
   private void addGetMethod(String name, Method method) {
+    // 检测属性名是否合法
     if (isValidPropertyName(name)) {
       getMethods.put(name, new MethodInvoker(method));
       Type returnType = TypeParameterResolver.resolveReturnType(method, type);
@@ -210,6 +212,12 @@ public class Reflector {
     }
   }
 
+  /**
+   * 将 Type 对象转换为 Class 对象
+   *
+   * @author yangwenxin
+   * @date 2024-11-17 20:05
+   */
   private Class<?> typeToClass(Type src) {
     Class<?> result = null;
     if (src instanceof Class) {
@@ -219,6 +227,7 @@ public class Reflector {
     } else if (src instanceof GenericArrayType) {
       Type componentType = ((GenericArrayType) src).getGenericComponentType();
       if (componentType instanceof Class) {
+        // 获取其组件类型并创建一个空数组实例，然后获取该数组的 Class 对象
         result = Array.newInstance((Class<?>) componentType, 0).getClass();
       } else {
         Class<?> componentClass = typeToClass(componentType);
@@ -239,6 +248,7 @@ public class Reflector {
         // modification of final fields through reflection (JSR-133). (JGB)
         // pr #16 - final static can only be set by the classloader
         int modifiers = field.getModifiers();
+        // 过滤掉 final 和 static 修饰的字段
         if (!(Modifier.isFinal(modifiers) && Modifier.isStatic(modifiers))) {
           addSetField(field);
         }
@@ -305,6 +315,7 @@ public class Reflector {
 
   private void addUniqueMethods(Map<String, Method> uniqueMethods, Method[] methods) {
     for (Method currentMethod : methods) {
+      // 桥接方法是 Java 编译器为了实现泛型类型擦除而自动生成的方法
       if (!currentMethod.isBridge()) {
         String signature = getSignature(currentMethod);
         // check to see if the method is already known
