@@ -165,6 +165,7 @@ public class Reflector {
       Method match = null;
       ReflectionException exception = null;
       for (Method setter : setters) {
+        // 参数类型和返回值类型相等
         if (setter.getParameterTypes()[0].equals(getterType)) {
           // should be the best match
           match = setter;
@@ -194,6 +195,7 @@ public class Reflector {
     }
     Class<?> paramType1 = setter1.getParameterTypes()[0];
     Class<?> paramType2 = setter2.getParameterTypes()[0];
+    // 返回子类
     if (paramType1.isAssignableFrom(paramType2)) {
       return setter2;
     } else if (paramType2.isAssignableFrom(paramType1)) {
